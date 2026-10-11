@@ -69,7 +69,9 @@ All numbers produced by the tooling in this repo; none estimated.
 - 192 C++ unit tests, including all 120 pass orderings checked against the
   oracle on 35 corpus programs
 - 87 pytest tests, including golden tests with hand-written expected output
-- Random programs × 4 execution paths, 0 mismatches
+- 500 random programs × 4 execution paths = 2,000 comparisons, 0 mismatches
+  (292 of the 500 trapped, which is a comparison too: all four paths must
+  agree on where and why a program traps)
 - 28,260 (program, pass-sequence) pairs measured during dataset generation,
   0 behaviour changes
 

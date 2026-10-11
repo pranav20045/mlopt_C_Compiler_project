@@ -90,7 +90,7 @@ part of the test distribution rather than something to filter out.
 |---|---|
 | C++ unit tests | **192 passing** |
 | All 120 pass orderings × 35 corpus programs, vs the oracle | **0 mismatches** |
-| Random programs × 4 execution paths | **480 comparisons, 0 mismatches** |
+| 500 random programs × 4 execution paths | **2,000 comparisons, 0 mismatches** |
 | (program, pass-sequence) pairs measured during dataset generation | **28,260 behaviour checks, 0 failures** |
 | Build | `-Wall -Wextra -Wconversion -Werror`, clean |
 | Sanitizers | ASan clean; UBSan on Linux CI |
