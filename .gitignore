@@ -24,3 +24,6 @@ bench/results/
 *.exe
 *.obj
 *.pdb
+
+# Scratch output from manual testing
+tmp/
