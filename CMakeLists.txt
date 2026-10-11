@@ -26,6 +26,7 @@ option(MLOPTC_WARNINGS_AS_ERRORS "Treat warnings as errors"         ON)
 
 include(cmake/CompilerWarnings.cmake)
 include(cmake/Sanitizers.cmake)
+include(cmake/StackSize.cmake)
 
 add_subdirectory(src)     # mloptc_core  (the compiler, as a library)
 add_subdirectory(tools)   # mloptc       (the CLI executable)

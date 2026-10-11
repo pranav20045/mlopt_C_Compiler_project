@@ -12,6 +12,8 @@ set(gtest_force_shared_crt ON CACHE BOOL "" FORCE)
 FetchContent_MakeAvailable(googletest)
 
 add_executable(mloptc_tests
+  unit/test_frontend.cpp
+  unit/test_interpreter.cpp
   unit/test_lexer.cpp
   unit/test_version.cpp
 )
@@ -21,5 +23,7 @@ target_link_libraries(mloptc_tests
 
 # Registers each TEST() with CTest individually, so `ctest` reports them
 # separately rather than as one opaque pass/fail.
+mloptc_set_stack_size(mloptc_tests)
+
 include(GoogleTest)
 gtest_discover_tests(mloptc_tests)

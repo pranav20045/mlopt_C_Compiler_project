@@ -288,9 +288,16 @@ All variables, local and global, scalar and array, start at **`0`**.
 
 ### 7.5 Recursion depth — bounded
 
-Call depth is limited to **10,000** frames. Exceeding it is a **runtime error**
+Call depth is limited to **1,000** frames. Exceeding it is a **runtime error**
 (§7.6), not a crash. This keeps a randomly generated runaway recursion from
 taking down the test harness.
+
+> The limit is 1,000 rather than something larger for an implementation reason
+> worth recording. The reference interpreter executes a ToyC call as native C++
+> recursion, so one ToyC frame costs several host frames. At a limit of 10,000
+> the interpreter overflowed the host stack and crashed *before* reaching the
+> limit — the guard was unreachable precisely when it mattered. A limit is only
+> meaningful if every implementation can reach it while still healthy.
 
 ### 7.6 Runtime errors
 
