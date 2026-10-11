@@ -1,0 +1,26 @@
+# Build output
+build/
+out/
+cmake-build-*/
+compile_commands.json
+
+# Editor / IDE
+.vscode/
+.idea/
+*.swp
+
+# Python (ml/, tests/)
+__pycache__/
+*.py[cod]
+.venv/
+venv/
+.pytest_cache/
+
+# Generated data & artifacts
+ml/data/
+ml/models/
+bench/results/
+*.ll
+*.exe
+*.obj
+*.pdb

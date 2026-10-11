@@ -1,0 +1,61 @@
+name: CI
+
+on:
+  push:
+    branches: [ main ]
+  pull_request:
+  workflow_dispatch:
+
+jobs:
+  # Linux is the authoritative sanitizer run: UBSan's runtime is incomplete on
+  # Windows, so full ASan+UBSan coverage lives here.
+  build-and-test:
+    name: ${{ matrix.name }}
+    runs-on: ${{ matrix.os }}
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - name: linux-clang-asan-ubsan
+            os: ubuntu-latest
+            preset: asan
+          - name: linux-gcc-release
+            os: ubuntu-latest
+            preset: release
+          - name: windows-clang-debug
+            os: windows-latest
+            preset: debug
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Install Ninja
+        uses: seanmiddleditch/gha-setup-ninja@v5
+
+      - name: Select compiler (Linux clang)
+        if: matrix.name == 'linux-clang-asan-ubsan'
+        run: echo "CC=clang"$'\n'"CXX=clang++" >> $GITHUB_ENV
+
+      - name: Configure
+        run: cmake --preset ${{ matrix.preset }}
+
+      - name: Build
+        run: cmake --build --preset ${{ matrix.preset }}
+
+      - name: Test
+        run: ctest --preset ${{ matrix.preset }}
+        if: matrix.preset != 'release'
+
+      - name: Test (release)
+        if: matrix.preset == 'release'
+        run: ctest --test-dir build/release --output-on-failure
+
+  format:
+    name: clang-format
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Check formatting
+        run: |
+          find src include tools tests -name '*.cpp' -o -name '*.hpp' \
+            | xargs clang-format --dry-run --Werror
