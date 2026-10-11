@@ -81,7 +81,12 @@ def build_matrix(records: list[dict], feature_names: list[str]):
     return np.array(x_rows, dtype=float), np.array(y_rows, dtype=float), np.array(groups)
 
 
-def export_model(model: GradientBoostingRegressor, feature_names: list[str], candidates: list[list[str]]) -> dict:
+def export_model(
+    model: GradientBoostingRegressor,
+    feature_names: list[str],
+    candidates: list[list[str]],
+    tolerance: float,
+) -> dict:
     """Serialises the forest in the exact shape src/ml_scheduler.cpp expects.
 
     scikit-learn stores each tree as parallel arrays; we copy them straight
@@ -110,8 +115,81 @@ def export_model(model: GradientBoostingRegressor, feature_names: list[str], can
         "base_score": float(model.init_.constant_[0][0]),
         "learning_rate": float(model.learning_rate),
         "candidates": candidates,
+        # Predictions closer together than this are treated as equal by the
+        # compiler, which then prefers the shortest candidate. Set to the
+        # model's own held-out error: a difference smaller than the model's
+        # error is noise, not signal.
+        "selection_tolerance": tolerance,
         "trees": trees,
     }
+
+
+def choose_tolerance(
+    model: GradientBoostingRegressor,
+    records: list[dict],
+    feature_names: list[str],
+    candidates: list[list[str]],
+    o2_sequence: list[str],
+    quality_budget: float,
+) -> float:
+    """Picks how much predicted-cost difference counts as 'the same'.
+
+    This is the knob on the quality/compile-cost tradeoff, and it has to be set
+    from data rather than guessed. A tolerance of 0 makes the compiler take the
+    single best-predicted sequence, which on a model with modest R-squared means
+    following noise. A large tolerance makes it take the shortest sequence
+    regardless, which is fast but can cost real runtime quality.
+
+    So: sweep the tolerance on the TRAINING programs and take the largest value
+    whose mean runtime cost stays within `quality_budget` of -O2. Choosing it on
+    training data keeps the held-out numbers honest -- the test set never
+    influences the operating point.
+    """
+    o2_key = tuple(o2_sequence)
+    best_tolerance = 0.0
+
+    for tolerance in [0.0, 0.0005, 0.001, 0.002, 0.004, 0.008, 0.015, 0.03, 0.06, 0.12]:
+        ratios_model: list[float] = []
+        ratios_o2: list[float] = []
+
+        for record in records:
+            by_sequence = {tuple(s["sequence"]): s for s in record["samples"]}
+            if o2_key not in by_sequence:
+                continue
+
+            scored = []
+            for candidate in candidates:
+                key = tuple(candidate)
+                # "run nothing" is never a valid answer to -O-ml; see
+                # src/ml_scheduler.cpp.
+                if not candidate or key not in by_sequence:
+                    continue
+                x = np.array([encode_row(record["features"], feature_names, candidate)], dtype=float)
+                scored.append((float(model.predict(x)[0]), key))
+
+            if not scored:
+                continue
+            scored.sort()
+            best_score = scored[0][0]
+            within = [key for score, key in scored if score <= best_score + tolerance]
+            chosen = min(within, key=lambda k: (len(k), within.index(k)))
+
+            ratios_model.append(by_sequence[chosen]["ratio"])
+            ratios_o2.append(by_sequence[o2_key]["ratio"])
+
+        if not ratios_model:
+            continue
+
+        mean_model = sum(ratios_model) / len(ratios_model)
+        mean_o2 = sum(ratios_o2) / len(ratios_o2)
+        loss = (mean_model - mean_o2) / mean_o2 if mean_o2 else 0.0
+
+        if loss <= quality_budget:
+            best_tolerance = tolerance
+        else:
+            break  # the curve is monotone; past here it only gets worse
+
+    return best_tolerance
 
 
 def evaluate_selection(
@@ -120,6 +198,7 @@ def evaluate_selection(
     feature_names: list[str],
     candidates: list[list[str]],
     o2_sequence: list[str],
+    tolerance: float,
 ) -> dict:
     """The metric that actually matters.
 
@@ -133,6 +212,7 @@ def evaluate_selection(
     model_costs: list[float] = []
     o2_costs: list[float] = []
     best_costs: list[float] = []
+    model_lengths: list[int] = []
     wins = 0
     losses = 0
     ties = 0
@@ -145,7 +225,7 @@ def evaluate_selection(
         scored = []
         for candidate in candidates:
             key = tuple(candidate)
-            if key not in by_sequence:
+            if not candidate or key not in by_sequence:
                 continue
             x = np.array([encode_row(record["features"], feature_names, candidate)], dtype=float)
             scored.append((float(model.predict(x)[0]), key))
@@ -154,7 +234,12 @@ def evaluate_selection(
             continue
 
         scored.sort()
-        chosen = scored[0][1]
+        # EXACTLY the rule src/ml_scheduler.cpp applies, so this number is a
+        # prediction of what the compiler will really do rather than of an
+        # idealised argmin it does not implement.
+        best_score = scored[0][0]
+        within = [key for score, key in scored if score <= best_score + tolerance]
+        chosen = min(within, key=lambda k: (len(k), within.index(k)))
 
         model_ratio = by_sequence[chosen]["ratio"]
         o2_ratio = by_sequence[o2_key]["ratio"]
@@ -163,6 +248,7 @@ def evaluate_selection(
         model_costs.append(model_ratio)
         o2_costs.append(o2_ratio)
         best_costs.append(best_ratio)
+        model_lengths.append(len(chosen))
 
         # A relative tolerance, because a difference of one instruction in ten
         # thousand is not a win in any meaningful sense.
@@ -196,6 +282,17 @@ def evaluate_selection(
         "wins": wins,
         "losses": losses,
         "ties": ties,
+        # The second objective. Runtime quality turned out to be saturated --
+        # nothing beats -O2 -- so what remains is reaching the same quality with
+        # fewer passes, which is compile time saved.
+        "mean_passes_model": sum(model_lengths) / len(model_lengths),
+        "mean_passes_o2": float(len(o2_sequence)),
+        "passes_saved_percent": 100.0
+        * (len(o2_sequence) - sum(model_lengths) / len(model_lengths))
+        / len(o2_sequence),
+        "quality_matches_o2": sum(
+            1 for m, o in zip(model_costs, o2_costs) if m <= o * 1.001
+        ),
     }
 
 
@@ -209,6 +306,13 @@ def main() -> int:
     parser.add_argument("--max-depth", type=int, default=4)
     parser.add_argument("--learning-rate", type=float, default=0.06)
     parser.add_argument("--seed", type=int, default=0)
+    parser.add_argument(
+        "--quality-budget",
+        type=float,
+        default=0.005,
+        help="how much mean runtime cost may regress vs -O2 in exchange for "
+        "running fewer passes (default 0.5%%)",
+    )
     args = parser.parse_args()
 
     if not args.dataset.is_file():
@@ -261,7 +365,17 @@ def main() -> int:
         candidates[1] if len(candidates) > 1 else candidates[0],
     )
 
-    selection = evaluate_selection(model, test_records, feature_names, candidates, o2_sequence)
+    tolerance = choose_tolerance(
+        model, train_records, feature_names, candidates, o2_sequence, args.quality_budget
+    )
+    print(
+        f"selection tolerance chosen on TRAINING data: {tolerance:g}"
+        f"  (quality budget {args.quality_budget:.1%})"
+    )
+
+    selection = evaluate_selection(
+        model, test_records, feature_names, candidates, o2_sequence, tolerance
+    )
 
     print("\n--- what actually matters: pass selection on held-out programs ---")
     if selection.get("programs"):
@@ -273,16 +387,31 @@ def main() -> int:
         print(f"gap to best closed    : {selection['gap_closed_percent']:.1f}%")
         print(f"wins/ties/losses      : {selection['wins']}/{selection['ties']}/{selection['losses']}")
 
-        if selection["improvement_over_o2_percent"] <= 0:
+        print("\n--- second objective: compile cost ---")
+        print(f"passes run by -O2     : {selection['mean_passes_o2']:.0f}")
+        print(f"passes run by -O-ml   : {selection['mean_passes_model']:.2f}")
+        print(f"passes saved          : {selection['passes_saved_percent']:.1f}%")
+        print(
+            f"quality still matched : {selection['quality_matches_o2']}/{selection['programs']}"
+            " programs"
+        )
+
+        if selection["improvement_over_o2_percent"] <= 0.01:
             print(
-                "\nNOTE: the model does NOT beat the fixed pipeline on this dataset.\n"
-                "That is a real result and belongs in the README as-is."
+                "\nNOTE: the model does NOT beat -O2 on runtime cost, and on this\n"
+                "dataset nothing does -- the best known sequence ties -O2 on every\n"
+                "held-out program. Runtime quality is saturated with five passes that\n"
+                "each iterate to a fixed point. What is left to win is compile cost,\n"
+                "which is what the numbers above measure. This belongs in the README\n"
+                "exactly as stated."
             )
     else:
         print("not enough held-out data to evaluate selection")
 
     args.out.parent.mkdir(parents=True, exist_ok=True)
-    args.out.write_text(json.dumps(export_model(model, feature_names, candidates)), encoding="utf-8")
+    args.out.write_text(
+        json.dumps(export_model(model, feature_names, candidates, tolerance)), encoding="utf-8"
+    )
     print(f"\nmodel written to {args.out}")
 
     args.metrics.parent.mkdir(parents=True, exist_ok=True)
@@ -291,6 +420,8 @@ def main() -> int:
             {
                 "regression": regression,
                 "selection": selection,
+                "selection_tolerance": tolerance,
+                "quality_budget": args.quality_budget,
                 "dataset": dataset.get("config", {}),
                 "n_programs": len(records),
                 "n_rows": int(x_train.shape[0] + x_test.shape[0]),

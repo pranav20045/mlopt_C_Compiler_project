@@ -13,6 +13,7 @@ FetchContent_MakeAvailable(googletest)
 
 add_executable(mloptc_tests
   unit/test_frontend.cpp
+  unit/test_json_and_ml.cpp
   unit/test_llvm_emitter.cpp
   unit/test_passes.cpp
   unit/test_vm.cpp

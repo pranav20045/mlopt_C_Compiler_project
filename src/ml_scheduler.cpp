@@ -44,8 +44,8 @@ bool readIntArray(const json::Value& parent, std::string_view key, std::vector<i
   return true;
 }
 
-bool readStringArray(const json::Value& parent, std::string_view key,
-                     std::vector<std::string>& out, std::string& error) {
+bool readStringArray(const json::Value& parent, std::string_view key, std::vector<std::string>& out,
+                     std::string& error) {
   const json::Value* array = parent.find(key);
   if (array == nullptr || !array->isArray()) {
     error = "model: missing or non-array field '" + std::string(key) + "'";
@@ -139,6 +139,10 @@ std::optional<Model> Model::loadFromJson(std::string_view text, std::string& err
   if (const json::Value* lr = root.find("learning_rate"); lr != nullptr && lr->isNumber()) {
     model.learningRate_ = lr->asNumber();
   }
+  if (const json::Value* tol = root.find("selection_tolerance");
+      tol != nullptr && tol->isNumber()) {
+    model.tolerance_ = tol->asNumber();
+  }
 
   // --- candidate sequences --------------------------------------------------
   const json::Value* candidates = root.find("candidates");
@@ -226,8 +230,7 @@ std::vector<double> Model::buildInput(const FeatureVector& programFeatures,
   }
 
   for (const std::string& pass : passVocabulary_) {
-    x.push_back(static_cast<double>(
-        std::count(sequence.begin(), sequence.end(), pass)));
+    x.push_back(static_cast<double>(std::count(sequence.begin(), sequence.end(), pass)));
   }
 
   for (std::size_t i = 0; i < maxSequenceLength_; ++i) {
@@ -260,17 +263,41 @@ double Model::predict(const FeatureVector& programFeatures,
 std::vector<std::string> Model::choosePipeline(const ir::Module& module) const {
   const FeatureVector features = extractFeatures(module);
 
-  // Lower predicted cost is better. Ties go to the earlier candidate, which
-  // makes the choice deterministic -- the compiler must produce the same output
-  // for the same input every time, model or no model.
-  const std::vector<std::string>* best = nullptr;
-  double bestScore = std::numeric_limits<double>::infinity();
+  std::vector<double> scores;
+  scores.reserve(candidates_.size());
 
+  double bestScore = std::numeric_limits<double>::infinity();
   for (const std::vector<std::string>& candidate : candidates_) {
     const double score = predict(features, candidate);
-    if (score < bestScore) {
-      bestScore = score;
-      best = &candidate;
+    scores.push_back(score);
+    bestScore = std::min(bestScore, score);
+  }
+
+  // Among candidates the model cannot tell apart, prefer the shortest -- same
+  // predicted code quality, fewer passes to get there. Ties beyond that go to
+  // the earliest candidate, so the compiler is deterministic: the same input
+  // must always produce the same output, model or no model.
+  const std::vector<std::string>* best = nullptr;
+  std::size_t bestLength = std::numeric_limits<std::size_t>::max();
+
+  for (std::size_t i = 0; i < candidates_.size(); ++i) {
+    // Never select "run nothing". The empty sequence is in the candidate set
+    // because the dataset needs it as the cost baseline, but it is also the
+    // shortest possible sequence -- so once the shortest-within-tolerance rule
+    // was added it started winning whenever the model could not tell the
+    // candidates apart. That turned -O-ml into -O0 on exactly the programs the
+    // model understood least, which is the opposite of what it should do.
+    // Measured on bench/programs/collatz.tc: -O-ml was selecting [] and
+    // delivering zero improvement.
+    if (candidates_[i].empty()) {
+      continue;
+    }
+    if (scores[i] > bestScore + tolerance_) {
+      continue;
+    }
+    if (candidates_[i].size() < bestLength) {
+      bestLength = candidates_[i].size();
+      best = &candidates_[i];
     }
   }
 

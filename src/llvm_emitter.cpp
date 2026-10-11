@@ -49,8 +49,7 @@ private:
     for (const GlobalVarDecl& g : module_.globals) {
       // An array global holds a HANDLE, which can only be produced at runtime,
       // so it starts at 0 and is filled in by @__toyc_init_globals.
-      os_ << "@g" << g.index << " = internal global i32 " << (g.isArray ? 0 : g.initValue)
-          << '\n';
+      os_ << "@g" << g.index << " = internal global i32 " << (g.isArray ? 0 : g.initValue) << '\n';
     }
     if (!module_.globals.empty()) {
       os_ << '\n';
@@ -240,16 +239,16 @@ private:
 
     case Opcode::ArrayLoad: {
       const std::string addr = freshTemp();
-      os_ << "  " << addr << " = call ptr @mloptc_array_addr(i32 " << operand(inst.a)
-          << ", i32 " << operand(inst.b) << ")\n";
+      os_ << "  " << addr << " = call ptr @mloptc_array_addr(i32 " << operand(inst.a) << ", i32 "
+          << operand(inst.b) << ")\n";
       os_ << "  " << dest << " = load i32, ptr " << addr << '\n';
       return;
     }
 
     case Opcode::ArrayStore: {
       const std::string addr = freshTemp();
-      os_ << "  " << addr << " = call ptr @mloptc_array_addr(i32 " << operand(inst.a)
-          << ", i32 " << operand(inst.b) << ")\n";
+      os_ << "  " << addr << " = call ptr @mloptc_array_addr(i32 " << operand(inst.a) << ", i32 "
+          << operand(inst.b) << ")\n";
       os_ << "  store i32 " << operand(inst.c) << ", ptr " << addr << '\n';
       return;
     }

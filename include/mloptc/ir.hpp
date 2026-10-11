@@ -132,7 +132,8 @@ struct Instruction {
   /// Calls every register operand this instruction READS. Centralising this is
   /// what keeps the passes honest: adding an operand to an opcode without
   /// updating this function would silently break every use-analysis at once.
-  template <typename F> void forEachUse(F&& fn) const {
+  template <typename F>
+  void forEachUse(F&& fn) const {
     switch (op) {
     case Opcode::Const:
     case Opcode::Jump:
@@ -189,7 +190,8 @@ struct Instruction {
 
   /// The mutable counterpart of forEachUse, used by passes that rewrite
   /// operands (copy propagation, constant folding).
-  template <typename F> void forEachUseMut(F&& fn) {
+  template <typename F>
+  void forEachUseMut(F&& fn) {
     switch (op) {
     case Opcode::Const:
     case Opcode::Jump:

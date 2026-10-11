@@ -34,6 +34,7 @@ namespace mloptc::ir {
 class VerificationResult {
 public:
   [[nodiscard]] bool ok() const noexcept { return errors_.empty(); }
+
   [[nodiscard]] const std::vector<std::string>& errors() const noexcept { return errors_; }
 
   /// All errors joined with newlines, for an assertion message.

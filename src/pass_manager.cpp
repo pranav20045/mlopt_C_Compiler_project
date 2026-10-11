@@ -45,8 +45,8 @@ PassPtr createPassByName(std::string_view name) {
 
 Pipeline defaultO2Pipeline() {
   return Pipeline{"O2",
-                  {"loadelim", "copyprop", "constfold", "cse", "copyprop", "dce",
-                   "loadelim", "copyprop", "constfold", "cse", "copyprop", "dce"}};
+                  {"loadelim", "copyprop", "constfold", "cse", "copyprop", "dce", "loadelim",
+                   "copyprop", "constfold", "cse", "copyprop", "dce"}};
 }
 
 std::string PipelineStats::report() const {
@@ -132,9 +132,8 @@ bool PassManager::run(ir::Module& module, const std::vector<std::string>& passNa
         const ir::VerificationResult result =
             ir::verify(fn, static_cast<std::uint32_t>(module.globals.size()));
         if (!result.ok()) {
-          error = "pass '" + passName + "' produced invalid IR in function '" + fn.name +
-                  "':\n" + result.message() + "\n--- IR after the pass ---\n" +
-                  ir::printFunction(fn);
+          error = "pass '" + passName + "' produced invalid IR in function '" + fn.name + "':\n" +
+                  result.message() + "\n--- IR after the pass ---\n" + ir::printFunction(fn);
           if (options_.abortOnVerificationFailure) {
             return false;
           }

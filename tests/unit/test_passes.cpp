@@ -1,5 +1,3 @@
-#include "corpus.hpp"
-
 #include "mloptc/driver.hpp"
 #include "mloptc/interpreter.hpp"
 #include "mloptc/ir_verifier.hpp"
@@ -7,9 +5,10 @@
 #include "mloptc/pass_manager.hpp"
 #include "mloptc/vm.hpp"
 
-#include <gtest/gtest.h>
+#include "corpus.hpp"
 
 #include <algorithm>
+#include <gtest/gtest.h>
 #include <string>
 #include <vector>
 
@@ -256,8 +255,8 @@ TEST(Passes, ConstantFoldingWrapsLikeTheRuntime) {
   // If the folder used host int arithmetic, this would be UB inside our own
   // compiler and could produce a constant that disagrees with the VM.
   Compiled compiled;
-  ASSERT_TRUE(compile("int main() { print(2147483647 + 1); print(2147483647 * 3); return 0; }",
-                      compiled));
+  ASSERT_TRUE(
+      compile("int main() { print(2147483647 + 1); print(2147483647 * 3); return 0; }", compiled));
 
   const ExecutionResult oracle = interpret(compiled.ast);
   opt::PipelineStats stats;
@@ -334,8 +333,7 @@ TEST(Passes, O2ReducesInstructionCount) {
       runOptimized(compiled, opt::defaultO2Pipeline().passNames, stats);
 
   EXPECT_EQ(optimized.output, "14\n");
-  EXPECT_LT(stats.instructionsAfter, stats.instructionsBefore)
-      << "the pipeline removed nothing";
+  EXPECT_LT(stats.instructionsAfter, stats.instructionsBefore) << "the pipeline removed nothing";
 }
 
 TEST(Passes, O2ReducesDynamicInstructionsOnTheCorpus) {

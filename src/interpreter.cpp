@@ -40,9 +40,8 @@ public:
     }
 
     if (status_ != RuntimeStatus::Ok) {
-      result_.exitStatus = status_ == RuntimeStatus::StepLimitExceeded
-                               ? kStepLimitExitStatus
-                               : kRuntimeErrorExitStatus;
+      result_.exitStatus = status_ == RuntimeStatus::StepLimitExceeded ? kStepLimitExitStatus
+                                                                       : kRuntimeErrorExitStatus;
     }
     result_.status = status_;
     result_.dynamicInstructions = steps_;

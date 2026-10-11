@@ -20,9 +20,8 @@ public:
     if (callFunction(module_.functions[module_.mainIndex], {}, exitValue)) {
       result_.exitStatus = static_cast<int>(((exitValue % 256) + 256) % 256);
     } else {
-      result_.exitStatus = status_ == RuntimeStatus::StepLimitExceeded
-                               ? kStepLimitExitStatus
-                               : kRuntimeErrorExitStatus;
+      result_.exitStatus = status_ == RuntimeStatus::StepLimitExceeded ? kStepLimitExitStatus
+                                                                       : kRuntimeErrorExitStatus;
     }
 
     result_.status = status_;
@@ -125,6 +124,7 @@ private:
   }
 
   std::int32_t& reg(ValueId id) { return values_[valueBase_ + id]; }
+
   std::int32_t regValue(ValueId id) const { return values_[valueBase_ + id]; }
 
   bool step(const Instruction& inst, std::int32_t& returnValue, BlockId& next) {

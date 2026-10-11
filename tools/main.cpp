@@ -2,9 +2,9 @@
 #include "mloptc/interpreter.hpp"
 #include "mloptc/ir_features.hpp"
 #include "mloptc/ir_verifier.hpp"
-#include "mloptc/ml_scheduler.hpp"
 #include "mloptc/llvm_emitter.hpp"
 #include "mloptc/lowering.hpp"
+#include "mloptc/ml_scheduler.hpp"
 #include "mloptc/pass_manager.hpp"
 #include "mloptc/version.hpp"
 #include "mloptc/vm.hpp"
@@ -21,30 +21,29 @@ namespace {
 using namespace mloptc;
 
 void printUsage() {
-  std::cout
-      << "MLOpt-C -- an optimizing compiler for ToyC\n\n"
-         "usage: mloptc [options] <file.tc>\n\n"
-         "execution:\n"
-         "  --run-ast          run on the AST interpreter (the reference oracle)\n"
-         "  --run-vm           run on the IR virtual machine (default)\n"
-         "  --emit-llvm        write LLVM IR to stdout (or to --output)\n\n"
-         "optimization:\n"
-         "  -O0                no optimization (default)\n"
-         "  -O2                the fixed pipeline\n"
-         "  -O-ml              let the trained model pick the pass order\n"
-         "  --model FILE       model JSON for -O-ml (default ml/models/model.json)\n"
-         "  --passes a,b,c     run exactly these passes, in this order\n"
-         "  --list-passes      show every available pass and exit\n\n"
-         "inspection:\n"
-         "  --emit-ast         print the type-checked AST\n"
-         "  --emit-ir          print the IR after optimization\n"
-         "  --emit-features    print the IR feature vector as JSON\n"
-         "  --stats            print pass statistics and the dynamic instruction count\n"
-         "  --json             print results as JSON (used by the ML tooling)\n\n"
-         "other:\n"
-         "  -o, --output FILE  write --emit-llvm output to FILE\n"
-         "  --version          print version and exit\n"
-         "  -h, --help         print this message and exit\n";
+  std::cout << "MLOpt-C -- an optimizing compiler for ToyC\n\n"
+               "usage: mloptc [options] <file.tc>\n\n"
+               "execution:\n"
+               "  --run-ast          run on the AST interpreter (the reference oracle)\n"
+               "  --run-vm           run on the IR virtual machine (default)\n"
+               "  --emit-llvm        write LLVM IR to stdout (or to --output)\n\n"
+               "optimization:\n"
+               "  -O0                no optimization (default)\n"
+               "  -O2                the fixed pipeline\n"
+               "  -O-ml              let the trained model pick the pass order\n"
+               "  --model FILE       model JSON for -O-ml (default ml/models/model.json)\n"
+               "  --passes a,b,c     run exactly these passes, in this order\n"
+               "  --list-passes      show every available pass and exit\n\n"
+               "inspection:\n"
+               "  --emit-ast         print the type-checked AST\n"
+               "  --emit-ir          print the IR after optimization\n"
+               "  --emit-features    print the IR feature vector as JSON\n"
+               "  --stats            print pass statistics and the dynamic instruction count\n"
+               "  --json             print results as JSON (used by the ML tooling)\n\n"
+               "other:\n"
+               "  -o, --output FILE  write --emit-llvm output to FILE\n"
+               "  --version          print version and exit\n"
+               "  -h, --help         print this message and exit\n";
 }
 
 void listPasses() {
@@ -321,9 +320,9 @@ int main(int argc, char** argv) {
     if (options.json) {
       // One line of JSON, so the Python tooling can parse it without caring
       // about anything else the compiler printed.
-      std::cout << "{\"output\":\"" << jsonEscape(result.output) << "\",\"exit_status\":"
-                << result.exitStatus << ",\"dynamic_instructions\":"
-                << result.dynamicInstructions
+      std::cout << "{\"output\":\"" << jsonEscape(result.output)
+                << "\",\"exit_status\":" << result.exitStatus
+                << ",\"dynamic_instructions\":" << result.dynamicInstructions
                 << ",\"static_instructions\":" << pipelineStats.instructionsAfter
                 << ",\"static_instructions_before\":" << pipelineStats.instructionsBefore
                 << ",\"blocks\":" << pipelineStats.blocksAfter << ",\"status\":\""

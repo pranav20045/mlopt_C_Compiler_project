@@ -1,10 +1,10 @@
-#include "corpus.hpp"
-
 #include "mloptc/driver.hpp"
 #include "mloptc/interpreter.hpp"
 #include "mloptc/ir_verifier.hpp"
 #include "mloptc/lowering.hpp"
 #include "mloptc/vm.hpp"
+
+#include "corpus.hpp"
 
 #include <gtest/gtest.h>
 
@@ -148,13 +148,12 @@ TEST(Vm, InstructionCountGrowsWithWork) {
   // otherwise the whole optimization target is meaningless.
   Compiled small;
   Compiled large;
-  ASSERT_TRUE(compile("int main() { for (int i = 0; i < 10; i = i + 1) { print(i); } return 0; }",
-                      small));
-  ASSERT_TRUE(compile(
-      "int main() { for (int i = 0; i < 100; i = i + 1) { print(i); } return 0; }", large));
+  ASSERT_TRUE(
+      compile("int main() { for (int i = 0; i < 10; i = i + 1) { print(i); } return 0; }", small));
+  ASSERT_TRUE(
+      compile("int main() { for (int i = 0; i < 100; i = i + 1) { print(i); } return 0; }", large));
 
-  EXPECT_LT(execute(small.module).dynamicInstructions,
-            execute(large.module).dynamicInstructions);
+  EXPECT_LT(execute(small.module).dynamicInstructions, execute(large.module).dynamicInstructions);
 }
 
 TEST(Vm, StepLimitIsEnforced) {
@@ -251,8 +250,7 @@ TEST(IrVerifier, AcceptsWellFormedCorpus) {
 
 TEST(Lowering, ShortCircuitCreatesBranches) {
   Compiled compiled;
-  ASSERT_TRUE(compile("int f() { return 1; } int main() { print(0 && f()); return 0; }",
-                      compiled));
+  ASSERT_TRUE(compile("int f() { return 1; } int main() { print(0 && f()); return 0; }", compiled));
 
   const ir::Function& main = compiled.module.functions[1];
   EXPECT_GT(main.blocks.size(), 1U) << "&& should have produced control flow";

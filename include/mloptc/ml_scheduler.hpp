@@ -27,8 +27,7 @@ public:
   /// Loads from JSON text. Returns nullopt and fills `error` on any problem,
   /// including a feature list that does not match this build -- a mismatch
   /// there would silently feed the model the wrong numbers.
-  [[nodiscard]] static std::optional<Model> loadFromJson(std::string_view text,
-                                                         std::string& error);
+  [[nodiscard]] static std::optional<Model> loadFromJson(std::string_view text, std::string& error);
 
   [[nodiscard]] static std::optional<Model> loadFromFile(const std::string& path,
                                                          std::string& error);
@@ -42,8 +41,22 @@ public:
     return candidates_;
   }
 
-  /// Picks the best-predicted candidate for this module.
+  /// Picks a pipeline for this module.
+  ///
+  /// Not simply argmin. Measurement showed that on this compiler many
+  /// different sequences reach the SAME optimized code -- no candidate beat the
+  /// fixed -O2 pipeline on any of 160 measured programs -- while differing
+  /// enormously in how many passes they run. So the rule is: take the best
+  /// predicted cost, then among every candidate whose prediction is within
+  /// `tolerance` of it (i.e. indistinguishable given the model's own error),
+  /// choose the SHORTEST. The model picks the quality; the tie-break buys
+  /// compile time back for free.
   [[nodiscard]] std::vector<std::string> choosePipeline(const ir::Module& module) const;
+
+  /// Predictions closer together than this are treated as equal. Exported by
+  /// ml/train.py as the model's held-out mean absolute error: differences
+  /// smaller than the model's own error are noise, not signal.
+  [[nodiscard]] double tolerance() const noexcept { return tolerance_; }
 
 private:
   /// One regression tree, stored as parallel arrays exactly as scikit-learn
@@ -76,6 +89,8 @@ private:
   std::size_t maxSequenceLength_ = 0;
 
   std::vector<std::vector<std::string>> candidates_;
+
+  double tolerance_ = 0.0;
 };
 
 } // namespace mloptc::ml

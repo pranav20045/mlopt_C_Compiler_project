@@ -17,13 +17,16 @@ venv/
 .pytest_cache/
 
 # Generated data & artifacts
-ml/data/
-ml/models/
-bench/results/
+ml/data/          # datasets are large and regenerable; see the README
 *.ll
 *.exe
 *.obj
 *.pdb
+
+# The trained model and the benchmark results ARE committed: the README links
+# to the charts, and -O-ml needs a model to be usable out of the box.
+!ml/models/
+!bench/results/
 
 # Scratch output from manual testing
 tmp/

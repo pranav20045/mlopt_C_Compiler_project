@@ -1,0 +1,403 @@
+{
+  "benchmarks": [
+    {
+      "name": "binary_search",
+      "baseline_dynamic": 24500222,
+      "baseline_static": 111,
+      "expected_output": "100000\n",
+      "levels": {
+        "O0": {
+          "dynamic": 24500222,
+          "static": 111,
+          "ratio": 1.0
+        },
+        "O2": {
+          "dynamic": 23700122,
+          "static": 109,
+          "ratio": 0.9673431530538784
+        },
+        "only-loadelim": {
+          "dynamic": 24500222,
+          "static": 111,
+          "ratio": 1.0
+        },
+        "only-constfold": {
+          "dynamic": 24500222,
+          "static": 111,
+          "ratio": 1.0
+        },
+        "only-copyprop": {
+          "dynamic": 24500222,
+          "static": 111,
+          "ratio": 1.0
+        },
+        "only-cse": {
+          "dynamic": 24500222,
+          "static": 111,
+          "ratio": 1.0
+        },
+        "only-dce": {
+          "dynamic": 24500222,
+          "static": 111,
+          "ratio": 1.0
+        },
+        "O-ml": {
+          "dynamic": 24500222,
+          "static": 111,
+          "ratio": 1.0
+        }
+      }
+    },
+    {
+      "name": "collatz",
+      "baseline_dynamic": 5380866,
+      "baseline_static": 73,
+      "expected_output": "2919\n216\n",
+      "levels": {
+        "O0": {
+          "dynamic": 5380866,
+          "static": 73,
+          "ratio": 1.0
+        },
+        "O2": {
+          "dynamic": 5162852,
+          "static": 71,
+          "ratio": 0.959483473478061
+        },
+        "only-loadelim": {
+          "dynamic": 5380866,
+          "static": 73,
+          "ratio": 1.0
+        },
+        "only-constfold": {
+          "dynamic": 5380866,
+          "static": 73,
+          "ratio": 1.0
+        },
+        "only-copyprop": {
+          "dynamic": 5380866,
+          "static": 73,
+          "ratio": 1.0
+        },
+        "only-cse": {
+          "dynamic": 5380866,
+          "static": 73,
+          "ratio": 1.0
+        },
+        "only-dce": {
+          "dynamic": 5380866,
+          "static": 73,
+          "ratio": 1.0
+        },
+        "O-ml": {
+          "dynamic": 5162852,
+          "static": 71,
+          "ratio": 0.959483473478061
+        }
+      }
+    },
+    {
+      "name": "crc_like",
+      "baseline_dynamic": 359788,
+      "baseline_static": 85,
+      "expected_output": "8192\n",
+      "levels": {
+        "O0": {
+          "dynamic": 359788,
+          "static": 85,
+          "ratio": 1.0
+        },
+        "O2": {
+          "dynamic": 318316,
+          "static": 80,
+          "ratio": 0.8847321200262377
+        },
+        "only-loadelim": {
+          "dynamic": 359788,
+          "static": 85,
+          "ratio": 1.0
+        },
+        "only-constfold": {
+          "dynamic": 359788,
+          "static": 85,
+          "ratio": 1.0
+        },
+        "only-copyprop": {
+          "dynamic": 359788,
+          "static": 85,
+          "ratio": 1.0
+        },
+        "only-cse": {
+          "dynamic": 359788,
+          "static": 85,
+          "ratio": 1.0
+        },
+        "only-dce": {
+          "dynamic": 359788,
+          "static": 85,
+          "ratio": 1.0
+        },
+        "O-ml": {
+          "dynamic": 318316,
+          "static": 80,
+          "ratio": 0.8847321200262377
+        }
+      }
+    },
+    {
+      "name": "fib_recursive",
+      "baseline_dynamic": 1500491,
+      "baseline_static": 21,
+      "expected_output": "46368\n",
+      "levels": {
+        "O0": {
+          "dynamic": 1500491,
+          "static": 21,
+          "ratio": 1.0
+        },
+        "O2": {
+          "dynamic": 1425467,
+          "static": 20,
+          "ratio": 0.9500003665466837
+        },
+        "only-loadelim": {
+          "dynamic": 1500491,
+          "static": 21,
+          "ratio": 1.0
+        },
+        "only-constfold": {
+          "dynamic": 1500491,
+          "static": 21,
+          "ratio": 1.0
+        },
+        "only-copyprop": {
+          "dynamic": 1500491,
+          "static": 21,
+          "ratio": 1.0
+        },
+        "only-cse": {
+          "dynamic": 1500491,
+          "static": 21,
+          "ratio": 1.0
+        },
+        "only-dce": {
+          "dynamic": 1500491,
+          "static": 21,
+          "ratio": 1.0
+        },
+        "O-ml": {
+          "dynamic": 1500491,
+          "static": 21,
+          "ratio": 1.0
+        }
+      }
+    },
+    {
+      "name": "matmul",
+      "baseline_dynamic": 62028,
+      "baseline_static": 136,
+      "expected_output": "477\n",
+      "levels": {
+        "O0": {
+          "dynamic": 62028,
+          "static": 136,
+          "ratio": 1.0
+        },
+        "O2": {
+          "dynamic": 58138,
+          "static": 130,
+          "ratio": 0.9372863867930612
+        },
+        "only-loadelim": {
+          "dynamic": 62028,
+          "static": 136,
+          "ratio": 1.0
+        },
+        "only-constfold": {
+          "dynamic": 62028,
+          "static": 136,
+          "ratio": 1.0
+        },
+        "only-copyprop": {
+          "dynamic": 62028,
+          "static": 136,
+          "ratio": 1.0
+        },
+        "only-cse": {
+          "dynamic": 62028,
+          "static": 136,
+          "ratio": 1.0
+        },
+        "only-dce": {
+          "dynamic": 62028,
+          "static": 136,
+          "ratio": 1.0
+        },
+        "O-ml": {
+          "dynamic": 58138,
+          "static": 130,
+          "ratio": 0.9372863867930612
+        }
+      }
+    },
+    {
+      "name": "nbody_int",
+      "baseline_dynamic": 2079443,
+      "baseline_static": 230,
+      "expected_output": "-23384\n",
+      "levels": {
+        "O0": {
+          "dynamic": 2079443,
+          "static": 230,
+          "ratio": 1.0
+        },
+        "O2": {
+          "dynamic": 1696259,
+          "static": 200,
+          "ratio": 0.8157275770482769
+        },
+        "only-loadelim": {
+          "dynamic": 2079443,
+          "static": 230,
+          "ratio": 1.0
+        },
+        "only-constfold": {
+          "dynamic": 2079443,
+          "static": 230,
+          "ratio": 1.0
+        },
+        "only-copyprop": {
+          "dynamic": 2079443,
+          "static": 230,
+          "ratio": 1.0
+        },
+        "only-cse": {
+          "dynamic": 2079443,
+          "static": 230,
+          "ratio": 1.0
+        },
+        "only-dce": {
+          "dynamic": 2079443,
+          "static": 230,
+          "ratio": 1.0
+        },
+        "O-ml": {
+          "dynamic": 1696259,
+          "static": 200,
+          "ratio": 0.8157275770482769
+        }
+      }
+    },
+    {
+      "name": "sieve",
+      "baseline_dynamic": 94311,
+      "baseline_static": 51,
+      "expected_output": "303\n",
+      "levels": {
+        "O0": {
+          "dynamic": 94311,
+          "static": 51,
+          "ratio": 1.0
+        },
+        "O2": {
+          "dynamic": 94008,
+          "static": 50,
+          "ratio": 0.9967872252441391
+        },
+        "only-loadelim": {
+          "dynamic": 94311,
+          "static": 51,
+          "ratio": 1.0
+        },
+        "only-constfold": {
+          "dynamic": 94311,
+          "static": 51,
+          "ratio": 1.0
+        },
+        "only-copyprop": {
+          "dynamic": 94311,
+          "static": 51,
+          "ratio": 1.0
+        },
+        "only-cse": {
+          "dynamic": 94311,
+          "static": 51,
+          "ratio": 1.0
+        },
+        "only-dce": {
+          "dynamic": 94311,
+          "static": 51,
+          "ratio": 1.0
+        },
+        "O-ml": {
+          "dynamic": 94008,
+          "static": 50,
+          "ratio": 0.9967872252441391
+        }
+      }
+    },
+    {
+      "name": "sort",
+      "baseline_dynamic": 1524762,
+      "baseline_static": 119,
+      "expected_output": "30608407\n",
+      "levels": {
+        "O0": {
+          "dynamic": 1524762,
+          "static": 119,
+          "ratio": 1.0
+        },
+        "O2": {
+          "dynamic": 1276031,
+          "static": 108,
+          "ratio": 0.8368722462915524
+        },
+        "only-loadelim": {
+          "dynamic": 1524762,
+          "static": 119,
+          "ratio": 1.0
+        },
+        "only-constfold": {
+          "dynamic": 1524762,
+          "static": 119,
+          "ratio": 1.0
+        },
+        "only-copyprop": {
+          "dynamic": 1524762,
+          "static": 119,
+          "ratio": 1.0
+        },
+        "only-cse": {
+          "dynamic": 1524762,
+          "static": 119,
+          "ratio": 1.0
+        },
+        "only-dce": {
+          "dynamic": 1524762,
+          "static": 119,
+          "ratio": 1.0
+        },
+        "O-ml": {
+          "dynamic": 1276031,
+          "static": 108,
+          "ratio": 0.8368722462915524
+        }
+      }
+    }
+  ],
+  "o2_pipeline": [
+    "loadelim",
+    "copyprop",
+    "constfold",
+    "cse",
+    "copyprop",
+    "dce",
+    "loadelim",
+    "copyprop",
+    "constfold",
+    "cse",
+    "copyprop",
+    "dce"
+  ],
+  "elapsed_seconds": 5.292589426040649
+}

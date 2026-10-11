@@ -121,11 +121,18 @@ def chart_relative_cost(results: dict, out_path: pathlib.Path) -> None:
     # The "no improvement" reference. Dashed and recessive: it is an annotation,
     # not a series.
     ax.axvline(1.0, color=TEXT_SECONDARY, linewidth=1.0, linestyle="--", zorder=2)
-    ax.text(1.0, len(records) - 0.3, "  unoptimized", fontsize=8, color=TEXT_SECONDARY, va="bottom")
+    # Annotated above the plot rather than inside it, so it cannot collide with
+    # a bar label.
+    ax.text(
+        1.0, len(records) - 0.35, "unoptimized",
+        fontsize=8, color=TEXT_SECONDARY, va="bottom", ha="center",
+    )
 
     ax.set_yticks(list(positions))
     ax.set_yticklabels(names)
-    ax.set_xlim(0, max(1.12, max(r["levels"]["O2"]["ratio"] for r in records) * 1.22))
+    # Headroom for the direct labels: without it they land on top of the
+    # dashed reference line at 1.0 and become unreadable.
+    ax.set_xlim(0, 1.30)
     _style_axes(ax, xlabel="dynamic instructions, relative to unoptimized (lower is better)")
 
     ax.set_title(
@@ -137,7 +144,9 @@ def chart_relative_cost(results: dict, out_path: pathlib.Path) -> None:
         fontweight="bold",
     )
 
-    legend = ax.legend(loc="lower right", frameon=False, fontsize=9)
+    legend = ax.legend(
+        loc="lower center", bbox_to_anchor=(0.5, -0.16), ncols=2, frameon=False, fontsize=9
+    )
     for text in legend.get_texts():
         text.set_color(TEXT_SECONDARY)
 
@@ -157,32 +166,49 @@ def chart_pass_contribution(results: dict, out_path: pathlib.Path) -> None:
     cannot see through loads and stores.
     """
     pass_names = ["loadelim", "constfold", "copyprop", "cse", "dce"]
-    rows: list[tuple[str, float]] = []
+    rows: list[tuple[str, float, str]] = []  # (label, ratio, kind)
+
+    def geo_mean_for(key: str) -> float | None:
+        ratios = [r["levels"][key]["ratio"] for r in results["benchmarks"] if key in r["levels"]]
+        if not ratios:
+            return None
+        return math.exp(sum(math.log(x) for x in ratios) / len(ratios))
 
     for name in pass_names:
-        key = f"only-{name}"
-        ratios = [r["levels"][key]["ratio"] for r in results["benchmarks"] if key in r["levels"]]
-        if ratios:
-            geo = math.exp(sum(math.log(x) for x in ratios) / len(ratios))
-            rows.append((name, geo))
+        value = geo_mean_for(f"only-{name}")
+        if value is not None:
+            rows.append((name, value, "single"))
 
-    o2_ratios = [r["levels"]["O2"]["ratio"] for r in results["benchmarks"] if "O2" in r["levels"]]
-    if o2_ratios:
-        rows.append(("-O2 (all, twice)", math.exp(sum(math.log(x) for x in o2_ratios) / len(o2_ratios))))
+    for record in results["benchmarks"]:
+        for key in record["levels"]:
+            if key.startswith("combo-"):
+                label = key[len("combo-") :]
+                if not any(r[0] == label for r in rows):
+                    value = geo_mean_for(key)
+                    if value is not None:
+                        rows.append((label, value, "combo"))
+        break  # the level set is the same for every benchmark
+
+    o2_value = geo_mean_for("O2")
+    if o2_value is not None:
+        rows.append(("-O2 (all passes, twice)", o2_value, "pipeline"))
 
     if not rows:
         return
 
-    rows.sort(key=lambda pair: -pair[1])
+    rows.sort(key=lambda row: -row[1])
     names = [r[0] for r in rows]
     values = [r[1] for r in rows]
+    kinds = [r[2] for r in rows]
 
-    fig, ax = plt.subplots(figsize=(9, 0.55 * len(rows) + 2.0))
+    fig, ax = plt.subplots(figsize=(10, 0.46 * len(rows) + 2.2))
     fig.patch.set_facecolor(SURFACE)
 
-    # The combined pipeline is a different kind of thing from a single pass, so
-    # it is coloured differently rather than blending into the series.
-    colors = [SERIES["O2"] if n.startswith("-O2") else SERIES["best"] for n in names]
+    # Three kinds of thing, so three colours: one pass alone, a small
+    # combination, and the full pipeline. Each is also named on its own axis
+    # label, so identity never rests on colour alone.
+    kind_color = {"single": SERIES["best"], "combo": SERIES["O-ml"], "pipeline": SERIES["O2"]}
+    colors = [kind_color[k] for k in kinds]
 
     bars = ax.barh(range(len(rows)), values, height=0.52, color=colors, zorder=3)
     for bar, value in zip(bars, values):
@@ -204,12 +230,19 @@ def chart_pass_contribution(results: dict, out_path: pathlib.Path) -> None:
     _style_axes(ax, xlabel="geometric mean ratio vs unoptimized (lower is better)")
 
     ax.set_title(
-        "What each pass achieves on its own",
+        "No pass helps on its own -- the wins are all in the interaction",
         color=TEXT_PRIMARY,
         fontsize=13,
         loc="left",
-        pad=16,
+        pad=26,
         fontweight="bold",
+    )
+    # A one-line subtitle, because the headline claim needs its mechanism
+    # stated or a reader will assume the passes are simply broken.
+    ax.text(
+        0.0, 1.015,
+        "Each pass rewrites instructions rather than removing them; nothing shrinks until dce runs.",
+        transform=ax.transAxes, fontsize=9, color=TEXT_SECONDARY, va="bottom",
     )
 
     fig.tight_layout()

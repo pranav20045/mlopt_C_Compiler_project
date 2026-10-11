@@ -136,8 +136,7 @@ VerificationResult verify(const Function& fn, std::uint32_t globalCount) {
         continue;
       }
       if (++defCount[inst.dest] > 1) {
-        result.addError(fn.name + ": %" + std::to_string(inst.dest) +
-                        " is defined more than once");
+        result.addError(fn.name + ": %" + std::to_string(inst.dest) + " is defined more than once");
       }
     }
   }

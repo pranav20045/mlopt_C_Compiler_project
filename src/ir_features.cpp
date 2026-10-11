@@ -270,8 +270,7 @@ void analyzeFunction(const ir::Function& fn, Counters& c) {
   std::vector<bool> isConst(fn.nextValue, false);
   for (const ir::BasicBlock& block : fn.blocks) {
     for (const ir::Instruction& inst : block.instructions) {
-      if (inst.op == ir::Opcode::Const && inst.dest != ir::kNoValue &&
-          inst.dest < isConst.size()) {
+      if (inst.op == ir::Opcode::Const && inst.dest != ir::kNoValue && inst.dest < isConst.size()) {
         isConst[inst.dest] = true;
       }
     }
@@ -299,9 +298,7 @@ FeatureVector extractFeatures(const ir::Module& module) {
   }
 
   FeatureVector f{};
-  const auto set = [&f](Feature key, double value) {
-    f[static_cast<std::size_t>(key)] = value;
-  };
+  const auto set = [&f](Feature key, double value) { f[static_cast<std::size_t>(key)] = value; };
 
   const auto instructions = static_cast<double>(c.instructions);
   const auto blocks = static_cast<double>(c.blocks);

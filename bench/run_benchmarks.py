@@ -43,6 +43,20 @@ O2_PIPELINE = [
 
 SINGLE_PASSES = ["loadelim", "constfold", "copyprop", "cse", "dce"]
 
+#: Measured alongside the single passes to show WHY the fixed pipeline is built
+#: the way it is. Every pass on its own turns out to achieve nothing: loadelim
+#: rewrites a load into a move but does not remove it, cse rewrites a redundant
+#: computation into a move, copyprop rewrites operands. Nothing shrinks until
+#: dce runs, and dce alone has nothing to remove. The wins are entirely in the
+#: interaction, which is exactly why pass selection is a question worth asking.
+PASS_COMBINATIONS = [
+    ("dce+constfold", ["constfold", "dce"]),
+    ("dce+loadelim", ["loadelim", "dce"]),
+    ("dce+copyprop", ["copyprop", "dce"]),
+    ("loadelim+copyprop+dce", ["loadelim", "copyprop", "dce"]),
+    ("loadelim+copyprop+constfold+dce", ["loadelim", "copyprop", "constfold", "dce"]),
+]
+
 
 def run_one(tc: Toolchain, path: pathlib.Path, model: pathlib.Path | None) -> dict | None:
     print(f"  {path.stem:<16}", end="", flush=True)
@@ -71,6 +85,8 @@ def run_one(tc: Toolchain, path: pathlib.Path, model: pathlib.Path | None) -> di
     ]
     for name in SINGLE_PASSES:
         configurations.append((f"only-{name}", [name]))
+    for label, passes in PASS_COMBINATIONS:
+        configurations.append((f"combo-{label}", passes))
 
     for label, passes in configurations:
         measured = tc.measure(path, passes)
@@ -163,7 +179,8 @@ def main() -> int:
         ratios = [r["levels"][label]["ratio"] for r in records if label in r["levels"]]
         if ratios:
             geo = math.exp(sum(math.log(x) for x in ratios) / len(ratios))
-            print(f"geometric mean ratio, -{label}: {geo:.4f}  ({100 * (1 - geo):+.1f}% instructions)")
+            print(f"geometric mean ratio, -{label}: {geo:.4f}  "
+                  f"({100 * (1 - geo):.1f}% fewer instructions)")
 
     miscompiled = [r["name"] for r in records if r.get("miscompiles")]
     if miscompiled:

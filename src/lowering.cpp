@@ -21,7 +21,8 @@ struct LoopTargets {
 
 class FunctionLowerer {
 public:
-  FunctionLowerer(const Program& program, const FunctionDecl& decl) : program_(program), decl_(decl) {}
+  FunctionLowerer(const Program& program, const FunctionDecl& decl)
+      : program_(program), decl_(decl) {}
 
   Function run() {
     fn_.name = decl_.name;

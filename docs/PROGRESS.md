@@ -3,62 +3,93 @@
 | Day | Target | Status |
 |-----|--------|--------|
 | 1 | Toolchain, repo skeleton, CMake, CI, lexer | **done** |
-| 2 | Parser -> AST, type/scope checker | next |
-| 3 | AST interpreter (reference oracle) + test programs | not started |
-| 4 | Three-address IR, CFG, lowering, IR verifier, IR VM | not started |
-| 5 | 4 optimization passes + pass manager + stats | not started |
-| 6 | Differential tester + random program generator (+LLVM emitter) | not started |
-| 7 | ML pass ordering, benchmarks, README | not started |
+| 2 | Parser, AST, semantic analysis | **done** |
+| 3 | AST interpreter (reference oracle) | **done** |
+| 4 | Three-address IR, CFG, verifier, IR VM | **done** |
+| 5 | Optimization passes and pass manager | **done** |
+| 6 | LLVM backend, differential tester, fuzzer, reducer | **done** |
+| 7 | ML pass selection, benchmarks, documentation | **done** |
 
 ---
 
-## Day 1 -- done
+## What exists
 
-### Delivered
-- `docs/spec.md`: the complete ToyC language specification, frozen at v1.0
-- Repo skeleton, CMake build graph, `CMakePresets.json` (debug / asan / release)
-- `env.ps1`: one-command reproducible toolchain setup on Windows
-- Lexer, token definitions, diagnostic engine -- **29 tests, all passing**
-- CI workflow, `.clang-format`, `format.ps1`
+**Compiler** (C++20, ~6,500 lines)
+- Lexer, recursive-descent parser, semantic analysis
+- AST interpreter — the reference oracle
+- Three-address IR with basic blocks and a CFG
+- IR verifier, run after every pass in debug builds
+- Five optimization passes with per-pass statistics, independently toggleable
+- IR virtual machine with dynamic instruction counting
+- LLVM IR text emitter plus a C runtime, compiled by clang
+- ML pass selection (`-O-ml`), with inference in C++ and no Python dependency
 
-### Phase A definition of done -- all verified
-- [x] `cmake --preset debug && cmake --build --preset debug && ctest --preset debug`
-      -> **29/29 passing**
-- [x] `mloptc --version` prints `MLOpt-C 0.1.0`
-- [x] A deliberate unused variable **fails** the build
-      (`error: unused variable 'deliberatelyUnused' [-Werror,-Wunused-variable]`)
-- [x] A deliberate heap overflow in a test **is caught** by ASan
-      (`heap-buffer-overflow ... test_version.cpp:16`), with exact file and line
-- [x] ASan build: **29/29 passing**
-- [x] `clang-format --dry-run --Werror`: clean
-- [ ] CI green on a pushed branch -- *no remote configured yet*
+**Verification** (Python)
+- Differential tester across four execution configurations
+- Random program generator
+- Test-case reducer (delta debugging plus expression simplification)
+- pytest suite including golden tests with hand-written expected output
 
-### Toolchain decision and what it cost
-Windows, with **LLVM/clang 23.1.3 + CMake 4.4.4 + Ninja 1.13.2 + MSVC Build
-Tools 17.14 + Windows SDK 10.0.26100**. Linux is not needed locally; GitHub
-Actions provides it for the authoritative sanitizer run.
+**ML**
+- Dataset generator, feature extraction, scikit-learn training, JSON export
 
-Four problems were hit and fixed, each recorded in `docs/DESIGN.md`:
+---
 
-1. **clang alone is not a toolchain on Windows.** It targets
-   `x86_64-pc-windows-msvc` and needs the MSVC standard library and the Windows
-   SDK import libraries underneath. Symptom: `'iostream' file not found`, then
-   `lld-link: could not open 'kernel32.lib'`.
-2. **clang does not auto-detect a Build Tools-only install.** Resolved by
-   importing the `vcvars64.bat` environment in `env.ps1`.
-3. **ASan is a whole-program property, not a per-target one.** Instrumenting our
-   code but not GoogleTest changed `std::string`'s layout between them, and the
-   linker refused: `/failifmismatch: mismatch detected for 'annotate_string'`.
-   Sanitizer flags are now global; warning flags remain per-target.
-4. **ASan on Windows is incompatible with the debug CRT.** Linking
-   `ucrtbased.dll` aborted inside CRT startup before `main`. Fixed by forcing
-   the release CRT in sanitizer builds.
+## Bugs found, and by what
 
-Note that the installer itself exited 1603, but the components we need all
-installed correctly -- verified directly on disk rather than trusting the exit
-code.
+The point of recording these is that each was found by a *different* tool, which
+is the argument for having more than one.
 
-### Next
-Day 2: parser and AST. The lexer's contract (always exactly one trailing
-`EndOfFile` token, never fails, reports and recovers) is what the parser will
-be built against.
+| # | Bug | Found by |
+|---|---|---|
+| 1 | Passing an array to a function was rejected | unit test |
+| 2 | `int a[3] = 1;` gave a baffling error message | unit test |
+| 3 | The call-depth limit was unreachable — the interpreter crashed before the counter could fire | unit test (a crash, not a failure) |
+| 4 | Without `loadelim`, `-O2` improved only 7 of 35 corpus programs | effectiveness test |
+| 5 | The pipeline was not idempotent: `cse` ran before `copyprop` | idempotence test |
+| 6 | Native exit status wrong on Windows (OS does not truncate to 8 bits) | **fuzzer**, seed 1 |
+| 7 | Step-limit aborts shared exit status 70 with real traps | **fuzzer**, seed 5 |
+| 8 | `-O-ml` selected the empty pipeline, delivering zero optimization | benchmark comparison |
+
+Bugs 6 and 7 are the ones that justify the whole verification layer: neither was
+reachable from any hand-written test, and bug 6 is invisible on Linux entirely.
+
+Details and reasoning for each are in [`DESIGN.md`](DESIGN.md) §6.
+
+---
+
+## Measured results
+
+All numbers produced by the tooling in this repo; none estimated.
+
+**Correctness**
+- 170 C++ unit tests, including all 120 pass orderings checked against the
+  oracle on 35 corpus programs
+- 120 random programs × 4 execution paths = 480 comparisons, 0 mismatches
+- 4,160 (program, pass-sequence) pairs measured during dataset generation,
+  0 behaviour changes
+
+**Optimization** (8 benchmarks, dynamic instruction count)
+- `-O2` geometric mean ratio **0.9164** — 8.4% fewer instructions than
+  unoptimized
+
+**Pass selection** (held-out programs)
+- No candidate sequence beats `-O2` on runtime cost — on any program measured
+- `-O-ml` matches `-O2` quality on 39 of 40 held-out programs while running
+  ~4 passes instead of 12
+
+See the README for the full table and the charts.
+
+---
+
+## Not done
+
+Honest list of what a reader should not expect to find:
+
+- **No SSA form**, so no mem2reg, no global CSE, no LICM. `loadelim` is a
+  block-local stand-in.
+- **No function inlining**, no loop optimizations, no strength reduction.
+- **No bounds-check elimination**, even where provably redundant.
+- **Single file only** — no separate compilation or linking.
+- **CI has never run.** The workflow is written but there is no remote yet;
+  every number above comes from local runs on Windows.

@@ -158,6 +158,14 @@ def _measure_program(args) -> dict | None:
         }
 
 
+#: The candidate set is the model's ACTION SPACE, and it must not depend on
+#: which programs happen to be sampled. Seeding it from --seed meant two
+#: datasets generated with different program seeds got different candidate
+#: lists and could not be merged -- and, worse, a model trained on one could not
+#: be compared against a model trained on the other. Fixed seed, always.
+CANDIDATE_SEED = 20261012
+
+
 def build_dataset(
     programs: int,
     sequences_count: int,
@@ -167,8 +175,7 @@ def build_dataset(
     max_depth: int = 3,
     jobs: int = 1,
 ) -> dict:
-    rng = random.Random(seed)
-    sequences = candidate_sequences(rng, sequences_count)
+    sequences = candidate_sequences(random.Random(CANDIDATE_SEED), sequences_count)
 
     tasks = [(seed + i, size, max_depth, sequences) for i in range(programs)]
 

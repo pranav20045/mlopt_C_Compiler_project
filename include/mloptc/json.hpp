@@ -25,22 +25,31 @@ public:
   enum class Kind { Null, Bool, Number, String, Array, Object };
 
   Value() = default;
+
   explicit Value(bool b) : kind_(Kind::Bool), bool_(b) {}
+
   explicit Value(double n) : kind_(Kind::Number), number_(n) {}
+
   explicit Value(std::string s) : kind_(Kind::String), string_(std::move(s)) {}
 
   [[nodiscard]] Kind kind() const noexcept { return kind_; }
+
   [[nodiscard]] bool isNull() const noexcept { return kind_ == Kind::Null; }
+
   [[nodiscard]] bool isNumber() const noexcept { return kind_ == Kind::Number; }
+
   [[nodiscard]] bool isArray() const noexcept { return kind_ == Kind::Array; }
+
   [[nodiscard]] bool isObject() const noexcept { return kind_ == Kind::Object; }
 
   [[nodiscard]] double asNumber(double fallback = 0.0) const noexcept {
     return kind_ == Kind::Number ? number_ : fallback;
   }
+
   [[nodiscard]] bool asBool(bool fallback = false) const noexcept {
     return kind_ == Kind::Bool ? bool_ : fallback;
   }
+
   [[nodiscard]] const std::string& asString() const noexcept { return string_; }
 
   [[nodiscard]] const std::vector<Value>& items() const noexcept { return array_; }

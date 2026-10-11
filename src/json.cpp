@@ -56,6 +56,7 @@ private:
   }
 
   [[nodiscard]] bool atEnd() const noexcept { return pos_ >= text_.size(); }
+
   [[nodiscard]] char peek() const noexcept { return atEnd() ? '\0' : text_[pos_]; }
 
   void skipWhitespace() {
@@ -114,8 +115,7 @@ private:
     case 't':
       return consumeLiteral("true") ? std::optional<Value>(Value(true)) : fail("expected true");
     case 'f':
-      return consumeLiteral("false") ? std::optional<Value>(Value(false))
-                                     : fail("expected false");
+      return consumeLiteral("false") ? std::optional<Value>(Value(false)) : fail("expected false");
     case 'n':
       return consumeLiteral("null") ? std::optional<Value>(Value()) : fail("expected null");
     default:
@@ -250,8 +250,8 @@ private:
     }
     while (!atEnd()) {
       const char c = text_[pos_];
-      const bool part = (c >= '0' && c <= '9') || c == '.' || c == 'e' || c == 'E' || c == '+' ||
-                        c == '-';
+      const bool part =
+          (c >= '0' && c <= '9') || c == '.' || c == 'e' || c == 'E' || c == '+' || c == '-';
       if (!part) {
         break;
       }

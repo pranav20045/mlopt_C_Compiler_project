@@ -1,0 +1,49 @@
+{
+  "regression": {
+    "r2": 0.17362430339572166,
+    "mae_log_ratio": 0.0613671680422146
+  },
+  "selection": {
+    "programs": 135,
+    "mean_ratio_model": 0.8788919734361644,
+    "mean_ratio_o2": 0.8751099935125392,
+    "mean_ratio_oracle_best": 0.8751099935125392,
+    "improvement_over_o2_percent": -0.43217195000197284,
+    "gap_closed_percent": 0.0,
+    "wins": 0,
+    "losses": 11,
+    "ties": 124,
+    "mean_passes_model": 4.214814814814815,
+    "mean_passes_o2": 12.0,
+    "passes_saved_percent": 64.87654320987654,
+    "quality_matches_o2": 124
+  },
+  "selection_tolerance": 0.03,
+  "quality_budget": 0.005,
+  "dataset": {
+    "programs": 900,
+    "sequences": 30,
+    "seed": 0,
+    "size": "medium",
+    "max_depth": 3
+  },
+  "n_programs": 537,
+  "n_rows": 16110,
+  "feature_importances": {
+    "count_constfold": 0.1422978800198747,
+    "pos_3": 0.10821742605054352,
+    "forwardable_load_ratio": 0.10147315032245269,
+    "memory_ratio": 0.08558856891694575,
+    "const_ratio": 0.05671297928930409,
+    "array_ratio": 0.04440265718942064,
+    "avg_block_size": 0.04113452575234463,
+    "count_dce": 0.039102308993277796,
+    "log_instruction_count": 0.03376935008764145,
+    "max_block_size": 0.03292683293624704,
+    "call_ratio": 0.03131889490013034,
+    "pos_0": 0.028457624710067214,
+    "div_rem_ratio": 0.027270032029146993,
+    "back_edge_ratio": 0.025900240823231495,
+    "avg_successors": 0.024986385545302556
+  }
+}

@@ -7,9 +7,9 @@ on:
   workflow_dispatch:
 
 jobs:
-  # Linux is the authoritative sanitizer run: UBSan's runtime is incomplete on
-  # Windows, so full ASan+UBSan coverage lives here.
-  build-and-test:
+  # Linux is the authoritative sanitizer run: UBSan's runtime support on Windows
+  # is incomplete, so full ASan+UBSan coverage lives here.
+  cpp:
     name: ${{ matrix.name }}
     runs-on: ${{ matrix.os }}
     strategy:
@@ -19,12 +19,18 @@ jobs:
           - name: linux-clang-asan-ubsan
             os: ubuntu-latest
             preset: asan
+            cc: clang
+            cxx: clang++
           - name: linux-gcc-release
             os: ubuntu-latest
             preset: release
+            cc: gcc
+            cxx: g++
           - name: windows-clang-debug
             os: windows-latest
             preset: debug
+            cc: clang
+            cxx: clang++
 
     steps:
       - uses: actions/checkout@v4
@@ -32,9 +38,18 @@ jobs:
       - name: Install Ninja
         uses: seanmiddleditch/gha-setup-ninja@v5
 
-      - name: Select compiler (Linux clang)
-        if: matrix.name == 'linux-clang-asan-ubsan'
-        run: echo "CC=clang"$'\n'"CXX=clang++" >> $GITHUB_ENV
+      # On Windows, clang needs the MSVC standard library and the Windows SDK
+      # underneath it; this puts them on PATH, which is what env.ps1 does
+      # locally.
+      - name: Set up MSVC environment
+        if: runner.os == 'Windows'
+        uses: ilammy/msvc-dev-cmd@v1
+
+      - name: Select compiler
+        shell: bash
+        run: |
+          echo "CC=${{ matrix.cc }}" >> $GITHUB_ENV
+          echo "CXX=${{ matrix.cxx }}" >> $GITHUB_ENV
 
       - name: Configure
         run: cmake --preset ${{ matrix.preset }}
@@ -43,12 +58,57 @@ jobs:
         run: cmake --build --preset ${{ matrix.preset }}
 
       - name: Test
-        run: ctest --preset ${{ matrix.preset }}
-        if: matrix.preset != 'release'
+        run: ctest --test-dir build/${{ matrix.preset }} --output-on-failure
 
-      - name: Test (release)
-        if: matrix.preset == 'release'
-        run: ctest --test-dir build/release --output-on-failure
+      - name: Upload the compiler
+        if: matrix.name == 'linux-gcc-release'
+        uses: actions/upload-artifact@v4
+        with:
+          name: mloptc-linux
+          path: build/release/bin/
+          retention-days: 7
+
+  # The verification layer: golden tests, the generator, and a short fuzzing
+  # campaign across all execution paths.
+  verification:
+    name: differential testing
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Install Ninja
+        uses: seanmiddleditch/gha-setup-ninja@v5
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+
+      - name: Install Python dependencies
+        run: pip install pytest
+
+      - name: Build the compiler
+        run: |
+          cmake --preset release
+          cmake --build --preset release
+
+      - name: Run the verification suite
+        run: pytest verify/ -v --tb=short
+
+      # A short campaign, sized to finish in CI time. The long ones are run by
+      # hand and their results reported in the README.
+      - name: Fuzz (300 programs, all paths)
+        run: |
+          python verify/differential.py \
+            --count 300 --size small --jobs 4 \
+            --report fuzz-report.json
+
+      - name: Upload the fuzz report
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: fuzz-report
+          path: fuzz-report.json
+          retention-days: 14
 
   format:
     name: clang-format

@@ -1,12 +1,11 @@
-#include "corpus.hpp"
-
 #include "mloptc/driver.hpp"
 #include "mloptc/llvm_emitter.hpp"
 #include "mloptc/lowering.hpp"
 #include "mloptc/pass_manager.hpp"
 
-#include <gtest/gtest.h>
+#include "corpus.hpp"
 
+#include <gtest/gtest.h>
 #include <string>
 
 using namespace mloptc;
@@ -144,8 +143,8 @@ TEST(LlvmEmitter, ConstantsAreInlinedRatherThanMaterialised) {
   // Const and Move produce no instructions at all; they are resolved into the
   // operands that use them. Keeps the output readable instead of relying on
   // clang to clean up noise we could just not emit.
-  const std::string llvm = emitFor("int main() { print(1 + 2); return 0; }",
-                                   opt::defaultO2Pipeline().passNames);
+  const std::string llvm =
+      emitFor("int main() { print(1 + 2); return 0; }", opt::defaultO2Pipeline().passNames);
   EXPECT_NE(llvm.find("@mloptc_print(i32 3)"), std::string::npos)
       << "expected the folded constant to be inlined, got:\n"
       << llvm;
