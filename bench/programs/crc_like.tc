@@ -1,0 +1,22 @@
+// A CRC-flavoured checksum over a synthetic buffer.
+// Exercises: arithmetic with deliberate overflow, long straight-line bodies.
+int main() {
+  int buffer[512];
+  int seed = 7;
+  for (int i = 0; i < 512; i = i + 1) {
+    seed = seed * 1103515245 + 12345;
+    buffer[i] = seed % 256;
+  }
+
+  int hash = 0;
+  for (int round = 0; round < 20; round = round + 1) {
+    for (int i = 0; i < 512; i = i + 1) {
+      int v = buffer[i] + round;
+      hash = hash * 31 + v;
+      hash = hash - (hash / 65536) * 65536 + v * 7;
+    }
+  }
+
+  print(hash);
+  return 0;
+}

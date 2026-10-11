@@ -74,7 +74,19 @@ TEST(LlvmEmitter, RemainderGoesThroughTheCheckedHelper) {
   const std::string llvm = emitFor("int main() { int d = 0; print(10 % d); return 0; }");
 
   EXPECT_NE(llvm.find("@mloptc_rem"), std::string::npos);
-  EXPECT_EQ(llvm.find("srem"), std::string::npos) << "emitted a raw srem";
+
+  // A ToyC '%' must never become a raw srem, which is undefined on a zero
+  // divisor. The only srem instructions in the output are the two in the
+  // entry point that reduce the exit status mod 256 -- a constant divisor of
+  // 256 can neither be zero nor trigger the INT_MIN/-1 case, so those are
+  // safe. Counting them pins that down exactly rather than just asserting
+  // 'some srem exists somewhere'.
+  std::size_t sremCount = 0;
+  for (std::size_t at = llvm.find("srem"); at != std::string::npos;
+       at = llvm.find("srem", at + 1)) {
+    ++sremCount;
+  }
+  EXPECT_EQ(sremCount, 2U) << "expected srem only in the exit-status reduction:\n" << llvm;
 }
 
 TEST(LlvmEmitter, ArrayAccessIsBoundsChecked) {
@@ -136,6 +148,22 @@ TEST(LlvmEmitter, ConstantsAreInlinedRatherThanMaterialised) {
                                    opt::defaultO2Pipeline().passNames);
   EXPECT_NE(llvm.find("@mloptc_print(i32 3)"), std::string::npos)
       << "expected the folded constant to be inlined, got:\n"
+      << llvm;
+}
+
+TEST(LlvmEmitter, ExitStatusIsReducedInTheEmittedCode) {
+  // A bug the fuzzer found, on seed 1.
+  //
+  // The spec defines the exit status as main's return value mod 256. Leaving
+  // that to the operating system works on POSIX, which truncates an exit code
+  // to 8 bits -- but Windows returns the full 32-bit value, so
+  // `return -2147483648` exited with -2147483648 natively while the oracle and
+  // the VM both reported 0. The reduction now happens in the emitted code, so
+  // the result depends on the spec rather than on the host's libc.
+  const std::string llvm = emitFor("int main() { return -2147483648; }");
+
+  EXPECT_NE(llvm.find("srem i32 %r, 256"), std::string::npos)
+      << "the entry point does not reduce the exit status:\n"
       << llvm;
 }
 

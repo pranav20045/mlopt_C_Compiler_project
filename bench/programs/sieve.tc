@@ -1,0 +1,20 @@
+// Sieve of Eratosthenes up to 2000.
+// Exercises: a long outer loop, a strided inner loop, array stores.
+int LIMIT = 2000;
+
+int main() {
+  int flags[2000];
+  int count = 0;
+
+  for (int i = 2; i < LIMIT; i = i + 1) {
+    if (flags[i] == 0) {
+      count = count + 1;
+      for (int j = i + i; j < LIMIT; j = j + i) {
+        flags[j] = 1;
+      }
+    }
+  }
+
+  print(count);
+  return 0;
+}

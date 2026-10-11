@@ -1,0 +1,31 @@
+// Bubble sort of 300 elements.
+// Exercises: a quadratic loop nest, comparisons, array swaps.
+void sort(int a[], int n) {
+  for (int i = 0; i < n; i = i + 1) {
+    for (int j = 0; j < n - 1 - i; j = j + 1) {
+      if (a[j] > a[j + 1]) {
+        int t = a[j];
+        a[j] = a[j + 1];
+        a[j + 1] = t;
+      }
+    }
+  }
+}
+
+int main() {
+  int data[300];
+  int x = 12345;
+  for (int i = 0; i < 300; i = i + 1) {
+    x = (x * 37 + 11) % 1000;
+    data[i] = x;
+  }
+
+  sort(data, 300);
+
+  int checksum = 0;
+  for (int i = 0; i < 300; i = i + 1) {
+    checksum = checksum + data[i] * i;
+  }
+  print(checksum);
+  return 0;
+}

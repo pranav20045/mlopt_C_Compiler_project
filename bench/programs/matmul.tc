@@ -1,0 +1,34 @@
+// Integer matrix multiply, 12x12, flattened into a 1-D array.
+// Exercises: nested loops, heavy array indexing, arithmetic in the inner loop.
+int N = 12;
+
+void fill(int m[], int seed) {
+  for (int i = 0; i < 144; i = i + 1) {
+    m[i] = (seed + i * 7) % 11 - 5;
+  }
+}
+
+int main() {
+  int a[144];
+  int b[144];
+  int c[144];
+  fill(a, 3);
+  fill(b, 8);
+
+  for (int i = 0; i < N; i = i + 1) {
+    for (int j = 0; j < N; j = j + 1) {
+      int total = 0;
+      for (int k = 0; k < N; k = k + 1) {
+        total = total + a[i * N + k] * b[k * N + j];
+      }
+      c[i * N + j] = total;
+    }
+  }
+
+  int checksum = 0;
+  for (int i = 0; i < 144; i = i + 1) {
+    checksum = checksum + c[i] * (i % 7 + 1);
+  }
+  print(checksum);
+  return 0;
+}

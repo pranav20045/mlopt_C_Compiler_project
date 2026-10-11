@@ -1,0 +1,12 @@
+// Naive recursive Fibonacci.
+// Exercises: the call path and nothing else -- a deliberate contrast with the
+// loop-heavy benchmarks, since call overhead is what dominates here.
+int fib(int n) {
+  if (n < 2) { return n; }
+  return fib(n - 1) + fib(n - 2);
+}
+
+int main() {
+  print(fib(24));
+  return 0;
+}

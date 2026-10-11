@@ -69,13 +69,27 @@ private:
   /// `main` calls the ToyC `main`. Globals are initialised first, and the array
   /// handles they hold are allocated OUTSIDE any frame mark, so no
   /// mloptc_leave can free them.
+  ///
+  /// The exit status is reduced to 0..255 HERE rather than left to the operating
+  /// system, and that is not pedantry -- it is a bug the fuzzer found. The spec
+  /// (section 8) defines the exit status as main's return value mod 256. POSIX
+  /// truncates a process exit code to 8 bits, so relying on the OS happens to
+  /// work there; Windows returns the full 32-bit value, so `return -2147483648`
+  /// exited with -2147483648 natively while the oracle and the VM both reported
+  /// 0. Computing it in the emitted code makes every platform agree with the
+  /// spec instead of agreeing with its own libc.
   void emitEntryPoint() {
     os_ << "define i32 @main() {\nentry:\n"
            "  call void @__toyc_init_globals()\n"
            "  %r = call i32 @"
         << mangled(module_.functions[module_.mainIndex].name)
         << "()\n"
-           "  ret i32 %r\n}\n";
+           // ((r % 256) + 256) % 256. C's % keeps the sign of the dividend,
+           // so a negative return needs the extra +256 to land in 0..255.
+           "  %m0 = srem i32 %r, 256\n"
+           "  %m1 = add i32 %m0, 256\n"
+           "  %m2 = srem i32 %m1, 256\n"
+           "  ret i32 %m2\n}\n";
   }
 
   static std::string mangled(const std::string& name) { return "toy_" + name; }

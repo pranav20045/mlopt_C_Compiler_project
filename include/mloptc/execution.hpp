@@ -22,6 +22,18 @@ enum class RuntimeStatus : std::uint8_t {
 /// The exit status the spec assigns to any runtime error.
 inline constexpr int kRuntimeErrorExitStatus = 70;
 
+/// Exit status used when a backend gives up because the program ran too long.
+///
+/// This must NOT be 70. A step-limit abort is not a ToyC runtime error -- the
+/// program is simply still running, which docs/spec.md 7.7 explicitly allows --
+/// and the point where each backend gives up differs, since the AST
+/// interpreter counts node visits, the VM counts IR instructions, and native
+/// code has no counter at all. Sharing status 70 with real traps made every
+/// non-terminating program look like a disagreement about trapping, which the
+/// fuzzer duly reported. 124 is the conventional "timed out" status, and the
+/// differential tester treats it as "no result" rather than as a mismatch.
+inline constexpr int kStepLimitExitStatus = 124;
+
 /// Per docs/spec.md section 7.5.
 ///
 /// 1000, not something larger, and the reason is worth stating: the AST

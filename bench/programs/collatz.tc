@@ -1,0 +1,31 @@
+// Longest Collatz chain below 3000.
+// Exercises: an unpredictable inner loop whose trip count is data-dependent,
+// plus division and remainder on every iteration.
+int chainLength(int n) {
+  int steps = 0;
+  while (n != 1) {
+    if (n % 2 == 0) {
+      n = n / 2;
+    } else {
+      n = 3 * n + 1;
+    }
+    steps = steps + 1;
+    if (steps > 1000) { return steps; }
+  }
+  return steps;
+}
+
+int main() {
+  int best = 0;
+  int bestN = 0;
+  for (int i = 1; i < 3000; i = i + 1) {
+    int len = chainLength(i);
+    if (len > best) {
+      best = len;
+      bestN = i;
+    }
+  }
+  print(bestN);
+  print(best);
+  return 0;
+}

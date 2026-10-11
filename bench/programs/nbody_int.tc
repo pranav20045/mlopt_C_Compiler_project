@@ -1,0 +1,46 @@
+// A fixed-point n-body-ish simulation (integers only, scaled by 1000).
+// Exercises: many live variables, repeated subexpressions, division.
+int SCALE = 1000;
+int BODIES = 24;
+
+int main() {
+  int px[24]; int py[24];
+  int vx[24]; int vy[24];
+
+  for (int i = 0; i < BODIES; i = i + 1) {
+    px[i] = (i * 137) % 2000 - 1000;
+    py[i] = (i * 311) % 2000 - 1000;
+    vx[i] = 0;
+    vy[i] = 0;
+  }
+
+  for (int step = 0; step < 60; step = step + 1) {
+    for (int i = 0; i < BODIES; i = i + 1) {
+      int ax = 0;
+      int ay = 0;
+      for (int j = 0; j < BODIES; j = j + 1) {
+        if (i != j) {
+          int dx = px[j] - px[i];
+          int dy = py[j] - py[i];
+          int d2 = dx * dx + dy * dy;
+          if (d2 < 1) { d2 = 1; }
+          ax = ax + (dx * SCALE) / d2;
+          ay = ay + (dy * SCALE) / d2;
+        }
+      }
+      vx[i] = vx[i] + ax;
+      vy[i] = vy[i] + ay;
+    }
+    for (int i = 0; i < BODIES; i = i + 1) {
+      px[i] = px[i] + vx[i] / SCALE;
+      py[i] = py[i] + vy[i] / SCALE;
+    }
+  }
+
+  int checksum = 0;
+  for (int i = 0; i < BODIES; i = i + 1) {
+    checksum = checksum + px[i] * 3 + py[i] * 5;
+  }
+  print(checksum);
+  return 0;
+}

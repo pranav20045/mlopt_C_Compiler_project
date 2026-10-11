@@ -20,7 +20,9 @@ public:
     if (callFunction(module_.functions[module_.mainIndex], {}, exitValue)) {
       result_.exitStatus = static_cast<int>(((exitValue % 256) + 256) % 256);
     } else {
-      result_.exitStatus = kRuntimeErrorExitStatus;
+      result_.exitStatus = status_ == RuntimeStatus::StepLimitExceeded
+                               ? kStepLimitExitStatus
+                               : kRuntimeErrorExitStatus;
     }
 
     result_.status = status_;
