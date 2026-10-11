@@ -12,6 +12,7 @@ set(gtest_force_shared_crt ON CACHE BOOL "" FORCE)
 FetchContent_MakeAvailable(googletest)
 
 add_executable(mloptc_tests
+  unit/test_lexer.cpp
   unit/test_version.cpp
 )
 

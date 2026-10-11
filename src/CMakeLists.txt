@@ -2,6 +2,9 @@
 # CLI shim. This split is what lets the test binary link against the exact same
 # code the CLI runs -- without it, nothing in the compiler would be unit-testable.
 add_library(mloptc_core STATIC
+  diagnostics.cpp
+  lexer.cpp
+  token.cpp
   version.cpp
 )
 

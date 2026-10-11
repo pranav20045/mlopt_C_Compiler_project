@@ -2,8 +2,8 @@
 
 | Day | Target | Status |
 |-----|--------|--------|
-| 1 | Toolchain, repo skeleton, CMake, CI, lexer | in progress |
-| 2 | Parser -> AST, type/scope checker | not started |
+| 1 | Toolchain, repo skeleton, CMake, CI, lexer | **done** |
+| 2 | Parser -> AST, type/scope checker | next |
 | 3 | AST interpreter (reference oracle) + test programs | not started |
 | 4 | Three-address IR, CFG, lowering, IR verifier, IR VM | not started |
 | 5 | 4 optimization passes + pass manager + stats | not started |
@@ -12,43 +12,53 @@
 
 ---
 
-## Day 1
+## Day 1 -- done
 
-### Done
-- Repo skeleton: `src/ include/ tools/ tests/ docs/ bench/ ml/ cmake/`
-- Root `CMakeLists.txt`, `CMakePresets.json` (debug / asan / release)
-- `cmake/CompilerWarnings.cmake`, `cmake/Sanitizers.cmake` (INTERFACE targets)
-- Walking skeleton: `mloptc_core` + `mloptc` CLI + first GoogleTest
-- `.clang-format` (LLVM base, 100 cols), `format.ps1`
-- `.github/workflows/ci.yml`: linux-clang-asan-ubsan, linux-gcc-release,
-  windows-clang-debug, plus a clang-format check
-- `docs/DESIGN.md` seeded with Phase A rationale
+### Delivered
+- `docs/spec.md`: the complete ToyC language specification, frozen at v1.0
+- Repo skeleton, CMake build graph, `CMakePresets.json` (debug / asan / release)
+- `env.ps1`: one-command reproducible toolchain setup on Windows
+- Lexer, token definitions, diagnostic engine -- **29 tests, all passing**
+- CI workflow, `.clang-format`, `format.ps1`
 
-### Blocked
-**No working C++ toolchain yet.** Installed: clang 23.1.3, CMake 4.4.4,
-Ninja 1.13.2, clang-format 23.1.3. Missing: a C++ standard library and the
-Windows SDK import libraries.
+### Phase A definition of done -- all verified
+- [x] `cmake --preset debug && cmake --build --preset debug && ctest --preset debug`
+      -> **29/29 passing**
+- [x] `mloptc --version` prints `MLOpt-C 0.1.0`
+- [x] A deliberate unused variable **fails** the build
+      (`error: unused variable 'deliberatelyUnused' [-Werror,-Wunused-variable]`)
+- [x] A deliberate heap overflow in a test **is caught** by ASan
+      (`heap-buffer-overflow ... test_version.cpp:16`), with exact file and line
+- [x] ASan build: **29/29 passing**
+- [x] `clang-format --dry-run --Werror`: clean
+- [ ] CI green on a pushed branch -- *no remote configured yet*
 
-Evidence -- `cmake --preset debug` parses all CMake correctly and fails only at
-the compiler check:
+### Toolchain decision and what it cost
+Windows, with **LLVM/clang 23.1.3 + CMake 4.4.4 + Ninja 1.13.2 + MSVC Build
+Tools 17.14 + Windows SDK 10.0.26100**. Linux is not needed locally; GitHub
+Actions provides it for the authoritative sanitizer run.
 
-```
-lld-link: error: could not open 'kernel32.lib': no such file or directory
-lld-link: error: could not open 'user32.lib': no such file or directory
-```
+Four problems were hit and fixed, each recorded in `docs/DESIGN.md`:
 
-clang on Windows is a compiler *front end*; it defaults to
-`--target=x86_64-pc-windows-msvc` and expects Microsoft's C++ library and SDK
-underneath. Resolution pending -- see "Toolchain decision" below.
+1. **clang alone is not a toolchain on Windows.** It targets
+   `x86_64-pc-windows-msvc` and needs the MSVC standard library and the Windows
+   SDK import libraries underneath. Symptom: `'iostream' file not found`, then
+   `lld-link: could not open 'kernel32.lib'`.
+2. **clang does not auto-detect a Build Tools-only install.** Resolved by
+   importing the `vcvars64.bat` environment in `env.ps1`.
+3. **ASan is a whole-program property, not a per-target one.** Instrumenting our
+   code but not GoogleTest changed `std::string`'s layout between them, and the
+   linker refused: `/failifmismatch: mismatch detected for 'annotate_string'`.
+   Sanitizer flags are now global; warning flags remain per-target.
+4. **ASan on Windows is incompatible with the debug CRT.** Linking
+   `ucrtbased.dll` aborted inside CRT startup before `main`. Fixed by forcing
+   the release CRT in sanitizer builds.
 
-### Toolchain decision
-_(to be filled in once chosen)_
+Note that the installer itself exited 1603, but the components we need all
+installed correctly -- verified directly on disk rather than trusting the exit
+code.
 
-### Not yet verified
-These are the Phase A "definition of done" items that cannot be checked until
-the toolchain is complete:
-- [ ] `cmake --preset debug && cmake --build --preset debug && ctest --preset debug`
-- [ ] `mloptc --version` prints `MLOpt-C 0.1.0`
-- [ ] A deliberate unused-variable warning fails the build
-- [ ] A deliberate heap overflow in a test is caught by ASan
-- [ ] CI green on a pushed branch
+### Next
+Day 2: parser and AST. The lexer's contract (always exactly one trailing
+`EndOfFile` token, never fails, reports and recovers) is what the parser will
+be built against.
