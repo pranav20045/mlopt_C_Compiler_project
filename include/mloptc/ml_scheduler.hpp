@@ -53,9 +53,14 @@ public:
   /// compile time back for free.
   [[nodiscard]] std::vector<std::string> choosePipeline(const ir::Module& module) const;
 
-  /// Predictions closer together than this are treated as equal. Exported by
-  /// ml/train.py as the model's held-out mean absolute error: differences
-  /// smaller than the model's own error are noise, not signal.
+  /// Predictions closer together than this are treated as equal.
+  ///
+  /// Chosen by ml/train.py as the largest value whose mean runtime cost on the
+  /// TRAINING programs stays within a stated budget (0.5% by default) of the
+  /// fixed pipeline. It is the knob on the quality/compile-cost tradeoff: 0
+  /// makes the compiler chase the single best-predicted sequence, which on a
+  /// model with modest R-squared means following noise, while a large value
+  /// takes the shortest sequence regardless and can cost real quality.
   [[nodiscard]] double tolerance() const noexcept { return tolerance_; }
 
 private:

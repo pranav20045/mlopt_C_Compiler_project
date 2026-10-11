@@ -1,0 +1,9 @@
+{
+  "programs": 500,
+  "comparisons": 2000,
+  "skipped": 0,
+  "timeouts": 0,
+  "trapping": 292,
+  "mismatches": [],
+  "elapsed_seconds": 761.0866267681122
+}

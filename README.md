@@ -88,10 +88,10 @@ part of the test distribution rather than something to filter out.
 
 | Check | Result |
 |---|---|
-| C++ unit tests | **191 passing** |
+| C++ unit tests | **192 passing** |
 | All 120 pass orderings × 35 corpus programs, vs the oracle | **0 mismatches** |
 | Random programs × 4 execution paths | **480 comparisons, 0 mismatches** |
-| (program, pass-sequence) pairs measured during dataset generation | **26,610 behaviour checks, 0 failures** |
+| (program, pass-sequence) pairs measured during dataset generation | **28,260 behaviour checks, 0 failures** |
 | Build | `-Wall -Wextra -Wconversion -Werror`, clean |
 | Sanitizers | ASan clean; UBSan on Linux CI |
 
@@ -139,18 +139,20 @@ ignores cache behaviour entirely.
 
 ![Optimization effect per benchmark](bench/results/relative_cost.png)
 
-| benchmark | unoptimized | -O2 | ratio |
-|---|---:|---:|---:|
-| binary_search | 24,500,222 | 23,697,422 | 0.967 |
-| collatz | 5,380,866 | 5,162,852 | 0.959 |
-| crc_like | 359,788 | 318,348 | 0.885 |
-| fib_recursive | 1,500,491 | 1,425,466 | 0.950 |
-| matmul | 62,028 | 58,138 | 0.937 |
-| nbody_int | 2,079,443 | 1,696,259 | 0.816 |
-| sieve | 94,311 | 94,008 | 0.997 |
-| sort | 1,524,762 | 1,276,031 | 0.837 |
+| benchmark | unoptimized | -O2 | ratio | -O-ml | ratio |
+|---|---:|---:|---:|---:|---:|
+| binary_search | 24,500,222 | 23,700,122 | 0.967 | 23,700,122 | 0.967 |
+| collatz | 5,380,866 | 5,162,852 | 0.959 | 5,162,852 | 0.959 |
+| crc_like | 359,788 | 318,316 | 0.885 | 318,316 | 0.885 |
+| fib_recursive | 1,500,491 | 1,425,467 | 0.950 | 1,425,467 | 0.950 |
+| matmul | 62,028 | 58,138 | 0.937 | 58,138 | 0.937 |
+| nbody_int | 2,079,443 | 1,696,259 | 0.816 | 1,696,259 | 0.816 |
+| sieve | 94,311 | 94,008 | 0.997 | 94,311 | 1.000 |
+| sort | 1,524,762 | 1,276,031 | 0.837 | 1,276,031 | 0.837 |
 
-**Geometric mean ratio: 0.9164 — 8.4% fewer dynamic instructions.**
+**Geometric mean: `-O2` 0.9164, `-O-ml` 0.9168** — 8.4% and 8.3% fewer dynamic
+instructions. `-O-ml` matches `-O2` exactly on 7 of 8 benchmarks, using a
+quarter of the passes.
 
 Modest, and the reason is in the limitations: there is no inlining (so
 `fib_recursive` is dominated by call overhead no pass can touch) and no loop
@@ -161,17 +163,30 @@ moves).
 
 ![What each pass achieves](bench/results/pass_contribution.png)
 
-**No single pass improves anything on its own.** Every one of the five scores
-exactly 1.000 alone.
+**No single pass improves anything on its own — and neither does any pair.**
+
+| Passes run | Geometric mean ratio |
+|---|---:|
+| any one of the five, alone | **1.000** — nothing |
+| `dce` + `constfold` | 1.000 |
+| `dce` + `loadelim` | 1.000 |
+| `dce` + `copyprop` | 1.000 |
+| `loadelim` + `copyprop` + `dce` | **0.916** |
+| `-O2` (all five, twice — 12 passes) | **0.916** |
 
 The mechanism: each pass *rewrites* instructions rather than removing them.
-`loadelim` turns a redundant load into a move. `cse` turns a redundant
-computation into a move. `copyprop` rewrites operands. Nothing shrinks until
+`loadelim` turns a redundant load into a move, `cse` turns a redundant
+computation into a move, `copyprop` rewrites operands. Nothing shrinks until
 `dce` runs — and `dce` alone has nothing to remove, because nothing is dead
 until the others have run.
 
-So the entire benefit lives in pass *interaction*, which is precisely what makes
-pass selection a question worth asking at all.
+It takes all three of `loadelim → copyprop → dce` before anything happens at
+all: `loadelim` creates the moves, `copyprop` forwards them so the originals
+become unused, and only then does `dce` have something to delete.
+
+**Those three passes achieve exactly what all twelve do.** The entire benefit
+lives in pass interaction, and the fixed pipeline is doing four times more work
+than necessary — which is the finding the ML layer below acts on.
 
 ---
 
@@ -184,7 +199,7 @@ model is a JSON file and the compiler has no Python dependency at compile time.
 ### The honest result
 
 **Pass ordering has no headroom for runtime quality in this compiler.** Across
-537 measured programs, *no* candidate sequence beat the fixed `-O2` pipeline on
+942 measured programs, *no* candidate sequence beat the fixed `-O2` pipeline on
 a single one. Runtime quality is saturated: with five passes that each iterate
 to a fixed point, every reasonable sequence converges to the same optimized
 code.
@@ -197,28 +212,39 @@ cost**:
 
 | | `-O2` | `-O-ml` |
 |---|---:|---:|
-| Passes run | 12 | **4.21** |
-| Held-out programs matching `-O2` quality | — | **124 / 135** |
-| Mean runtime cost vs `-O2` | 1.000 | 1.004 |
+| Passes run | 12 | **4.03** |
+| Held-out programs matching `-O2` quality | — | **215 / 236** |
+| Mean runtime cost vs `-O2` | 1.000 | 1.002 |
+| Benchmark geometric mean | 0.9164 | 0.9168 |
 
-`-O-ml` reaches essentially the same code quality while running **65% fewer
+`-O-ml` reaches essentially the same code quality while running **66% fewer
 passes**. The operating point is chosen on training data against a stated
 0.5% quality budget, never on the test set.
 
-On the benchmark suite its geometric mean ratio is **0.9262** versus `-O2`'s
-**0.9164** — slightly worse, because on two benchmarks (`binary_search`,
-`fib_recursive`) it drops `loadelim` and delivers no improvement at all. That is
-**distribution shift**: the model trained on small random programs, and those
-benchmarks are larger and more loop-heavy than anything it saw.
+**Distribution shift, and fixing it.** The first model trained only on small
+random programs and generalised badly to the hand-written benchmarks, which are
+larger and far more loop-heavy. On `binary_search` and `fib_recursive` it
+dropped `loadelim` and delivered *zero* improvement, giving a benchmark
+geometric mean of 0.9262 against `-O2`'s 0.9164.
+
+The fix was to widen the training distribution rather than to special-case the
+benchmarks: a second dataset of larger, deeper programs was generated and merged
+(`ml/merge_datasets.py`), taking the training set from 537 to 942 programs. The
+retrained model now matches `-O2` exactly on 7 of 8 benchmarks.
 
 ### What a reader should take from this
 
-The ML component does not beat a well-chosen fixed pipeline, and on this
-compiler nothing could. What it does demonstrate is the measurement
-infrastructure around it: a cost model, a feature extractor, a train/test split
-by program (not by row, which would let the model memorise), an operating point
-chosen against an explicit budget, and an evaluation that reports the best
-*achievable* result alongside the model's so the gap is visible.
+The ML component does not beat a well-chosen fixed pipeline on code quality,
+and on this compiler nothing could — that ceiling is a property of the pass set,
+not of the model. What it does deliver is the same quality for a third of the
+compile work, on a question the benchmark data showed was actually open.
+
+The transferable part is the measurement discipline: a reproducible cost model,
+a static feature extractor, a train/test split by program (not by row, which
+would let the model memorise), an operating point chosen against an explicit
+budget on training data, a diagnosed case of distribution shift fixed by
+widening the training set, and an evaluation that reports the best *achievable*
+result next to the model's so the remaining gap is visible rather than implied.
 
 ---
 
@@ -238,6 +264,10 @@ python verify/differential.py --count 1000 --jobs 8
 # 4. Benchmarks and charts
 python bench/run_benchmarks.py
 python bench/make_charts.py
+
+# Verify the three-pass claim yourself
+./build/release/bin/mloptc --run-vm --stats --passes loadelim,copyprop,dce bench/programs/sort.tc
+./build/release/bin/mloptc --run-vm --stats -O2 bench/programs/sort.tc
 
 # 5. Train a model from scratch  (~10 minutes)
 pip install -r ml/requirements.txt

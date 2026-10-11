@@ -238,6 +238,62 @@ The spec explicitly allows a program to run forever (§7.7), so this is "no
 result", never a mismatch. Step-limit aborts now exit 124 and the tester treats
 that like a wall-clock timeout.
 
+### A guard that defeated itself
+
+`-O-ml` was observed selecting the *empty* pipeline on
+`bench/programs/collatz.tc`, delivering no optimization at all. The empty
+sequence is in the candidate set because the dataset needs it as the cost
+baseline, and it is also the shortest — so once "prefer the shortest among
+indistinguishable candidates" was added, it won whenever the model was unsure.
+
+The first fix skipped it in the selection loop. That was not enough: the
+minimum score was still taken over *all* candidates including the empty one, so
+when the empty sequence was the strict minimum, nothing satisfied
+`score <= bestScore + tolerance` and the function returned `{}` anyway. **The
+guard failed in exactly the case it was written for.** The exclusion has to
+happen before the minimum is taken.
+
+The unit test written for the first fix could not catch the second bug: its
+single-leaf tree gave every candidate an identical score, so the minimum was
+always attainable. The regression test now uses a tree that splits on a
+pass-count feature, and it was confirmed to fail against the old code.
+
+### No single pass does anything
+
+The benchmark suite showed something that is obvious in hindsight and was not
+obvious in advance: **each of the five passes, run alone, achieves exactly
+nothing** — and so does every *pair*.
+
+Each pass rewrites instructions rather than removing them. `loadelim` turns a
+redundant load into a move, `cse` turns a redundant computation into a move,
+`copyprop` rewrites operands. Nothing shrinks until `dce` runs, and `dce` alone
+has nothing to remove.
+
+It takes all three of `loadelim → copyprop → dce` before anything happens:
+`loadelim` creates the moves, `copyprop` forwards them so the originals become
+unused, and only then does `dce` have something to delete. Those three reach
+0.916 — identical to all twelve passes of `-O2`.
+
+That measurement is what redirected the ML objective from pass ordering (no
+headroom) to compile cost (a factor of three).
+
+### Distribution shift, diagnosed and fixed
+
+The first model trained only on small random programs and generalised badly to
+the hand-written benchmarks, which are larger and far more loop-heavy. On
+`binary_search` and `fib_recursive` it dropped `loadelim` — the one pass that
+matters — and delivered zero improvement.
+
+The fix was to widen the training distribution rather than special-case the
+benchmarks: a second dataset of larger, deeper programs, merged with the first,
+taking the training set from 537 to 942 programs. The retrained model matches
+`-O2` exactly on 7 of 8 benchmarks.
+
+Merging exposed a further bug: the candidate sequence list was seeded from
+`--seed`, so two datasets generated with different program seeds had different
+*action spaces* and could not be combined — and two models trained on them could
+not have been compared. The action space is now seeded independently.
+
 ---
 
 ## 7. Build system

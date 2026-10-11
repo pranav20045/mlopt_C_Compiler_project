@@ -1,14 +1,14 @@
 | benchmark | unoptimized | -O2 | ratio | -O-ml | ratio |
 |---|---:|---:|---:|---:|---:|
-| binary_search | 24,500,222 | 23,700,122 | 0.967 | 24,500,222 | 1.000 |
+| binary_search | 24,500,222 | 23,700,122 | 0.967 | 23,700,122 | 0.967 |
 | collatz | 5,380,866 | 5,162,852 | 0.959 | 5,162,852 | 0.959 |
 | crc_like | 359,788 | 318,316 | 0.885 | 318,316 | 0.885 |
-| fib_recursive | 1,500,491 | 1,425,467 | 0.950 | 1,500,491 | 1.000 |
+| fib_recursive | 1,500,491 | 1,425,467 | 0.950 | 1,425,467 | 0.950 |
 | matmul | 62,028 | 58,138 | 0.937 | 58,138 | 0.937 |
 | nbody_int | 2,079,443 | 1,696,259 | 0.816 | 1,696,259 | 0.816 |
-| sieve | 94,311 | 94,008 | 0.997 | 94,008 | 0.997 |
+| sieve | 94,311 | 94,008 | 0.997 | 94,311 | 1.000 |
 | sort | 1,524,762 | 1,276,031 | 0.837 | 1,276,031 | 0.837 |
 
-**Geometric mean ratio, -O2: 0.9164** (+8.4% instructions)
+**Geometric mean ratio, -O2: 0.9164** (8.4% fewer dynamic instructions)
 
-**Geometric mean ratio, -O-ml: 0.9262** (+7.4% instructions)
+**Geometric mean ratio, -O-ml: 0.9168** (8.3% fewer dynamic instructions)

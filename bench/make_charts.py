@@ -130,9 +130,14 @@ def chart_relative_cost(results: dict, out_path: pathlib.Path) -> None:
 
     ax.set_yticks(list(positions))
     ax.set_yticklabels(names)
-    # Headroom for the direct labels: without it they land on top of the
-    # dashed reference line at 1.0 and become unreadable.
-    ax.set_xlim(0, 1.30)
+    # Headroom for the direct labels: without it they land on top of the dashed
+    # reference line at 1.0 and become unreadable. Still data-driven, so a
+    # benchmark that got SLOWER than unoptimized is not silently clipped off
+    # the right edge along with its label.
+    widest = max(
+        (lvl["ratio"] for r in records for lvl in r["levels"].values()), default=1.0
+    )
+    ax.set_xlim(0, max(1.30, widest * 1.18))
     _style_axes(ax, xlabel="dynamic instructions, relative to unoptimized (lower is better)")
 
     ax.set_title(
@@ -179,15 +184,19 @@ def chart_pass_contribution(results: dict, out_path: pathlib.Path) -> None:
         if value is not None:
             rows.append((name, value, "single"))
 
+    # Scan EVERY benchmark rather than assuming a uniform level set: run_one
+    # omits a level when it times out or changes behaviour, so taking the keys
+    # from the first benchmark alone would silently drop a whole series.
+    combo_keys: list[str] = []
     for record in results["benchmarks"]:
         for key in record["levels"]:
-            if key.startswith("combo-"):
-                label = key[len("combo-") :]
-                if not any(r[0] == label for r in rows):
-                    value = geo_mean_for(key)
-                    if value is not None:
-                        rows.append((label, value, "combo"))
-        break  # the level set is the same for every benchmark
+            if key.startswith("combo-") and key not in combo_keys:
+                combo_keys.append(key)
+
+    for key in combo_keys:
+        value = geo_mean_for(key)
+        if value is not None:
+            rows.append((key[len("combo-") :], value, "combo"))
 
     o2_value = geo_mean_for("O2")
     if o2_value is not None:
@@ -225,7 +234,7 @@ def chart_pass_contribution(results: dict, out_path: pathlib.Path) -> None:
 
     ax.set_yticks(range(len(rows)))
     ax.set_yticklabels(names)
-    ax.set_xlim(0, 1.15)
+    ax.set_xlim(0, max(1.15, max(values) * 1.12))
     ax.xaxis.set_major_formatter(FuncFormatter(lambda v, _: f"{v:.2f}"))
     _style_axes(ax, xlabel="geometric mean ratio vs unoptimized (lower is better)")
 
@@ -281,7 +290,11 @@ def write_markdown_table(results: dict, out_path: pathlib.Path) -> None:
         ratios = [r["levels"][label]["ratio"] for r in records if label in r["levels"]]
         if ratios:
             geo = math.exp(sum(math.log(x) for x in ratios) / len(ratios))
-            lines.append(f"\n**Geometric mean ratio, -{label}: {geo:.4f}** ({100 * (1 - geo):+.1f}% instructions)")
+            # "+8.4%" would read as an increase; it is a reduction.
+            lines.append(
+                f"\n**Geometric mean ratio, -{label}: {geo:.4f}** "
+                f"({100 * (1 - geo):.1f}% fewer dynamic instructions)"
+            )
 
     out_path.parent.mkdir(parents=True, exist_ok=True)
     out_path.write_text("\n".join(lines) + "\n", encoding="utf-8")

@@ -41,10 +41,35 @@
           "static": 111,
           "ratio": 1.0
         },
-        "O-ml": {
+        "combo-dce+constfold": {
           "dynamic": 24500222,
           "static": 111,
           "ratio": 1.0
+        },
+        "combo-dce+loadelim": {
+          "dynamic": 24500222,
+          "static": 111,
+          "ratio": 1.0
+        },
+        "combo-dce+copyprop": {
+          "dynamic": 24500222,
+          "static": 111,
+          "ratio": 1.0
+        },
+        "combo-loadelim+copyprop+dce": {
+          "dynamic": 23700122,
+          "static": 109,
+          "ratio": 0.9673431530538784
+        },
+        "combo-loadelim+copyprop+constfold+dce": {
+          "dynamic": 23700122,
+          "static": 109,
+          "ratio": 0.9673431530538784
+        },
+        "O-ml": {
+          "dynamic": 23700122,
+          "static": 109,
+          "ratio": 0.9673431530538784
         }
       }
     },
@@ -88,6 +113,31 @@
           "dynamic": 5380866,
           "static": 73,
           "ratio": 1.0
+        },
+        "combo-dce+constfold": {
+          "dynamic": 5380866,
+          "static": 73,
+          "ratio": 1.0
+        },
+        "combo-dce+loadelim": {
+          "dynamic": 5380866,
+          "static": 73,
+          "ratio": 1.0
+        },
+        "combo-dce+copyprop": {
+          "dynamic": 5380866,
+          "static": 73,
+          "ratio": 1.0
+        },
+        "combo-loadelim+copyprop+dce": {
+          "dynamic": 5162852,
+          "static": 71,
+          "ratio": 0.959483473478061
+        },
+        "combo-loadelim+copyprop+constfold+dce": {
+          "dynamic": 5162852,
+          "static": 71,
+          "ratio": 0.959483473478061
         },
         "O-ml": {
           "dynamic": 5162852,
@@ -137,6 +187,31 @@
           "static": 85,
           "ratio": 1.0
         },
+        "combo-dce+constfold": {
+          "dynamic": 359788,
+          "static": 85,
+          "ratio": 1.0
+        },
+        "combo-dce+loadelim": {
+          "dynamic": 359788,
+          "static": 85,
+          "ratio": 1.0
+        },
+        "combo-dce+copyprop": {
+          "dynamic": 359788,
+          "static": 85,
+          "ratio": 1.0
+        },
+        "combo-loadelim+copyprop+dce": {
+          "dynamic": 318316,
+          "static": 80,
+          "ratio": 0.8847321200262377
+        },
+        "combo-loadelim+copyprop+constfold+dce": {
+          "dynamic": 318316,
+          "static": 80,
+          "ratio": 0.8847321200262377
+        },
         "O-ml": {
           "dynamic": 318316,
           "static": 80,
@@ -185,10 +260,35 @@
           "static": 21,
           "ratio": 1.0
         },
-        "O-ml": {
+        "combo-dce+constfold": {
           "dynamic": 1500491,
           "static": 21,
           "ratio": 1.0
+        },
+        "combo-dce+loadelim": {
+          "dynamic": 1500491,
+          "static": 21,
+          "ratio": 1.0
+        },
+        "combo-dce+copyprop": {
+          "dynamic": 1500491,
+          "static": 21,
+          "ratio": 1.0
+        },
+        "combo-loadelim+copyprop+dce": {
+          "dynamic": 1425467,
+          "static": 20,
+          "ratio": 0.9500003665466837
+        },
+        "combo-loadelim+copyprop+constfold+dce": {
+          "dynamic": 1425467,
+          "static": 20,
+          "ratio": 0.9500003665466837
+        },
+        "O-ml": {
+          "dynamic": 1425467,
+          "static": 20,
+          "ratio": 0.9500003665466837
         }
       }
     },
@@ -232,6 +332,31 @@
           "dynamic": 62028,
           "static": 136,
           "ratio": 1.0
+        },
+        "combo-dce+constfold": {
+          "dynamic": 62028,
+          "static": 136,
+          "ratio": 1.0
+        },
+        "combo-dce+loadelim": {
+          "dynamic": 62028,
+          "static": 136,
+          "ratio": 1.0
+        },
+        "combo-dce+copyprop": {
+          "dynamic": 62028,
+          "static": 136,
+          "ratio": 1.0
+        },
+        "combo-loadelim+copyprop+dce": {
+          "dynamic": 58138,
+          "static": 130,
+          "ratio": 0.9372863867930612
+        },
+        "combo-loadelim+copyprop+constfold+dce": {
+          "dynamic": 58138,
+          "static": 130,
+          "ratio": 0.9372863867930612
         },
         "O-ml": {
           "dynamic": 58138,
@@ -281,6 +406,31 @@
           "static": 230,
           "ratio": 1.0
         },
+        "combo-dce+constfold": {
+          "dynamic": 2079443,
+          "static": 230,
+          "ratio": 1.0
+        },
+        "combo-dce+loadelim": {
+          "dynamic": 2079443,
+          "static": 230,
+          "ratio": 1.0
+        },
+        "combo-dce+copyprop": {
+          "dynamic": 2079443,
+          "static": 230,
+          "ratio": 1.0
+        },
+        "combo-loadelim+copyprop+dce": {
+          "dynamic": 1696259,
+          "static": 200,
+          "ratio": 0.8157275770482769
+        },
+        "combo-loadelim+copyprop+constfold+dce": {
+          "dynamic": 1696259,
+          "static": 200,
+          "ratio": 0.8157275770482769
+        },
         "O-ml": {
           "dynamic": 1696259,
           "static": 200,
@@ -329,10 +479,35 @@
           "static": 51,
           "ratio": 1.0
         },
-        "O-ml": {
+        "combo-dce+constfold": {
+          "dynamic": 94311,
+          "static": 51,
+          "ratio": 1.0
+        },
+        "combo-dce+loadelim": {
+          "dynamic": 94311,
+          "static": 51,
+          "ratio": 1.0
+        },
+        "combo-dce+copyprop": {
+          "dynamic": 94311,
+          "static": 51,
+          "ratio": 1.0
+        },
+        "combo-loadelim+copyprop+dce": {
           "dynamic": 94008,
           "static": 50,
           "ratio": 0.9967872252441391
+        },
+        "combo-loadelim+copyprop+constfold+dce": {
+          "dynamic": 94008,
+          "static": 50,
+          "ratio": 0.9967872252441391
+        },
+        "O-ml": {
+          "dynamic": 94311,
+          "static": 51,
+          "ratio": 1.0
         }
       }
     },
@@ -377,6 +552,31 @@
           "static": 119,
           "ratio": 1.0
         },
+        "combo-dce+constfold": {
+          "dynamic": 1524762,
+          "static": 119,
+          "ratio": 1.0
+        },
+        "combo-dce+loadelim": {
+          "dynamic": 1524762,
+          "static": 119,
+          "ratio": 1.0
+        },
+        "combo-dce+copyprop": {
+          "dynamic": 1524762,
+          "static": 119,
+          "ratio": 1.0
+        },
+        "combo-loadelim+copyprop+dce": {
+          "dynamic": 1276031,
+          "static": 108,
+          "ratio": 0.8368722462915524
+        },
+        "combo-loadelim+copyprop+constfold+dce": {
+          "dynamic": 1276031,
+          "static": 108,
+          "ratio": 0.8368722462915524
+        },
         "O-ml": {
           "dynamic": 1276031,
           "static": 108,
@@ -399,5 +599,5 @@
     "copyprop",
     "dce"
   ],
-  "elapsed_seconds": 5.292589426040649
+  "elapsed_seconds": 32.56822180747986
 }

@@ -16,8 +16,11 @@ __pycache__/
 venv/
 .pytest_cache/
 
-# Generated data & artifacts
-ml/data/          # datasets are large and regenerable; see the README
+# Generated data & artifacts.
+# NOTE: .gitignore has no inline comments -- a trailing "# ..." becomes part of
+# the pattern and silently matches nothing. Comments get their own line.
+# Datasets are large (~10 MB) and fully regenerable; see the README.
+ml/data/
 *.ll
 *.exe
 *.obj

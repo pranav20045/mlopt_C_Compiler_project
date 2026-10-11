@@ -148,31 +148,46 @@ def choose_tolerance(
     o2_key = tuple(o2_sequence)
     best_tolerance = 0.0
 
+    # Predictions do not depend on the tolerance, so they are computed once
+    # here rather than inside the sweep. Batched into a single predict() call
+    # per program as well: scikit-learn's per-call overhead dominates when
+    # predicting one row at a time.
+    cache: list[tuple[dict, list[tuple[float, tuple]]]] = []
+    for record in records:
+        by_sequence = {tuple(s["sequence"]): s for s in record["samples"]}
+        if o2_key not in by_sequence:
+            continue
+
+        usable = [
+            c for c in candidates
+            # "run nothing" is never a valid answer to -O-ml; see
+            # src/ml_scheduler.cpp.
+            if c and tuple(c) in by_sequence
+        ]
+        if not usable:
+            continue
+
+        rows = np.array(
+            [encode_row(record["features"], feature_names, c) for c in usable], dtype=float
+        )
+        predictions = model.predict(rows)
+        cache.append((by_sequence, [(float(p), tuple(c)) for p, c in zip(predictions, usable)]))
+
     for tolerance in [0.0, 0.0005, 0.001, 0.002, 0.004, 0.008, 0.015, 0.03, 0.06, 0.12]:
         ratios_model: list[float] = []
         ratios_o2: list[float] = []
 
-        for record in records:
-            by_sequence = {tuple(s["sequence"]): s for s in record["samples"]}
-            if o2_key not in by_sequence:
-                continue
-
-            scored = []
-            for candidate in candidates:
-                key = tuple(candidate)
-                # "run nothing" is never a valid answer to -O-ml; see
-                # src/ml_scheduler.cpp.
-                if not candidate or key not in by_sequence:
+        for by_sequence, scored in cache:
+            best_score = min(score for score, _ in scored)
+            best_key = None
+            best_length = None
+            for score, key in scored:
+                if score > best_score + tolerance:
                     continue
-                x = np.array([encode_row(record["features"], feature_names, candidate)], dtype=float)
-                scored.append((float(model.predict(x)[0]), key))
-
-            if not scored:
-                continue
-            scored.sort()
-            best_score = scored[0][0]
-            within = [key for score, key in scored if score <= best_score + tolerance]
-            chosen = min(within, key=lambda k: (len(k), within.index(k)))
+                if best_length is None or len(key) < best_length:
+                    best_length = len(key)
+                    best_key = key
+            chosen = best_key if best_key is not None else scored[0][1]
 
             ratios_model.append(by_sequence[chosen]["ratio"])
             ratios_o2.append(by_sequence[o2_key]["ratio"])
@@ -233,13 +248,21 @@ def evaluate_selection(
         if not scored:
             continue
 
-        scored.sort()
-        # EXACTLY the rule src/ml_scheduler.cpp applies, so this number is a
-        # prediction of what the compiler will really do rather than of an
-        # idealised argmin it does not implement.
-        best_score = scored[0][0]
-        within = [key for score, key in scored if score <= best_score + tolerance]
-        chosen = min(within, key=lambda k: (len(k), within.index(k)))
+        # EXACTLY the rule src/ml_scheduler.cpp applies, so this number
+        # describes what the compiler will really do rather than an idealised
+        # argmin it does not implement. `scored` is already in candidate order
+        # and already excludes the empty sequence, matching the C++ loop; the
+        # tie-break is first-by-candidate-order, so no sort happens first.
+        best_score = min(score for score, _ in scored)
+        best_key = None
+        best_length = None
+        for score, key in scored:
+            if score > best_score + tolerance:
+                continue
+            if best_length is None or len(key) < best_length:
+                best_length = len(key)
+                best_key = key
+        chosen = best_key if best_key is not None else scored[0][1]
 
         model_ratio = by_sequence[chosen]["ratio"]
         o2_ratio = by_sequence[o2_key]["ratio"]

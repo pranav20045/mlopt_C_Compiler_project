@@ -266,6 +266,41 @@ TEST(MlModel, NeverSelectsAnEmptyPipeline) {
   EXPECT_FALSE(model->choosePipeline(module).empty()) << "-O-ml selected 'run no passes at all'";
 }
 
+TEST(MlModel, NeverSelectsEmptyEvenWhenItScoresBest) {
+  // The regression test for the SECOND form of the empty-pipeline bug.
+  //
+  // The first fix skipped the empty sequence in the selection loop but still
+  // let it set the minimum score. If the empty sequence was the strict
+  // minimum, no surviving candidate could satisfy
+  // `score <= bestScore + tolerance`, and the function returned {} -- the
+  // exact outcome the guard was written to prevent.
+  //
+  // NeverSelectsAnEmptyPipeline cannot catch this: its single-leaf tree gives
+  // every candidate an identical score, so the minimum is always attainable.
+  // This model has a tree that splits on a pass-count feature, making the
+  // empty sequence (which runs no passes) score strictly lower than any other.
+  //
+  // Feature index kFeatureCount is "count_loadelim": 0 for the empty
+  // sequence, >= 1 for any candidate containing loadelim.
+  const std::string treeWithSplit =
+      R"([{"feature": [)" + std::to_string(ml::kFeatureCount) +
+      R"(, -2, -2], "threshold": [0.5, -2.0, -2.0],)"
+      R"( "left": [1, -1, -1], "right": [2, -1, -1], "value": [0.0, -99.0, 0.0]}])";
+
+  std::string error;
+  const auto model = ml::Model::loadFromJson(
+      makeModelJson(currentFeatureNamesJson(),
+                    R"([[], ["loadelim", "dce"], ["loadelim", "copyprop", "dce"]])", treeWithSplit),
+      error);
+  ASSERT_TRUE(model.has_value()) << error;
+
+  const ir::Module module = moduleFor("int main() { int x = 1 + 2; print(x); return 0; }");
+  const std::vector<std::string> chosen = model->choosePipeline(module);
+
+  EXPECT_FALSE(chosen.empty()) << "-O-ml returned an empty pipeline because the excluded empty "
+                                  "candidate set the minimum score";
+}
+
 TEST(MlModel, SelectionIsDeterministic) {
   // The compiler must produce the same output for the same input every time,
   // model or no model.

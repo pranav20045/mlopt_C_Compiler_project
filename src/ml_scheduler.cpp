@@ -263,12 +263,32 @@ double Model::predict(const FeatureVector& programFeatures,
 std::vector<std::string> Model::choosePipeline(const ir::Module& module) const {
   const FeatureVector features = extractFeatures(module);
 
+  // Never select "run nothing". The empty sequence is in the candidate set
+  // because the dataset needs it as the cost baseline, but it is also the
+  // shortest possible sequence -- so once the shortest-within-tolerance rule
+  // was added it started winning whenever the model could not tell the
+  // candidates apart. That turned -O-ml into -O0 on exactly the programs the
+  // model understood least, which is the opposite of what it should do.
+  // Measured on bench/programs/collatz.tc: -O-ml was selecting [].
+  //
+  // The exclusion has to happen BEFORE the minimum is taken, not after. Scoring
+  // the empty sequence and then skipping it in the selection loop left
+  // bestScore possibly set by a candidate no longer eligible -- and if the
+  // empty sequence was the strict minimum, nothing satisfied
+  // `score <= bestScore + tolerance` and this function returned {} anyway.
+  // The guard defeated itself in precisely the case it was written for.
+  std::vector<std::size_t> eligible;
   std::vector<double> scores;
+  eligible.reserve(candidates_.size());
   scores.reserve(candidates_.size());
 
   double bestScore = std::numeric_limits<double>::infinity();
-  for (const std::vector<std::string>& candidate : candidates_) {
-    const double score = predict(features, candidate);
+  for (std::size_t i = 0; i < candidates_.size(); ++i) {
+    if (candidates_[i].empty()) {
+      continue;
+    }
+    const double score = predict(features, candidates_[i]);
+    eligible.push_back(i);
     scores.push_back(score);
     bestScore = std::min(bestScore, score);
   }
@@ -280,24 +300,14 @@ std::vector<std::string> Model::choosePipeline(const ir::Module& module) const {
   const std::vector<std::string>* best = nullptr;
   std::size_t bestLength = std::numeric_limits<std::size_t>::max();
 
-  for (std::size_t i = 0; i < candidates_.size(); ++i) {
-    // Never select "run nothing". The empty sequence is in the candidate set
-    // because the dataset needs it as the cost baseline, but it is also the
-    // shortest possible sequence -- so once the shortest-within-tolerance rule
-    // was added it started winning whenever the model could not tell the
-    // candidates apart. That turned -O-ml into -O0 on exactly the programs the
-    // model understood least, which is the opposite of what it should do.
-    // Measured on bench/programs/collatz.tc: -O-ml was selecting [] and
-    // delivering zero improvement.
-    if (candidates_[i].empty()) {
+  for (std::size_t k = 0; k < eligible.size(); ++k) {
+    if (scores[k] > bestScore + tolerance_) {
       continue;
     }
-    if (scores[i] > bestScore + tolerance_) {
-      continue;
-    }
-    if (candidates_[i].size() < bestLength) {
-      bestLength = candidates_[i].size();
-      best = &candidates_[i];
+    const std::vector<std::string>& candidate = candidates_[eligible[k]];
+    if (candidate.size() < bestLength) {
+      bestLength = candidate.size();
+      best = &candidate;
     }
   }
 
