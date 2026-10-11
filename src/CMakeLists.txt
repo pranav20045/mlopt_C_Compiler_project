@@ -6,6 +6,16 @@ add_library(mloptc_core STATIC
   diagnostics.cpp
   driver.cpp
   interpreter.cpp
+  ir.cpp
+  ir_verifier.cpp
+  lowering.cpp
+  pass_manager.cpp
+  passes/constant_folding.cpp
+  passes/copy_propagation.cpp
+  passes/cse.cpp
+  passes/dead_code_elimination.cpp
+  passes/load_elimination.cpp
+  vm.cpp
   sema.cpp
   parser.cpp
   lexer.cpp
