@@ -7,7 +7,11 @@ add_library(mloptc_core STATIC
   driver.cpp
   interpreter.cpp
   ir.cpp
+  ir_features.cpp
   ir_verifier.cpp
+  json.cpp
+  ml_scheduler.cpp
+  llvm_emitter.cpp
   lowering.cpp
   pass_manager.cpp
   passes/constant_folding.cpp
