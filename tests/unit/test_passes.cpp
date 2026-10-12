@@ -484,15 +484,44 @@ TEST(PassManager, EmptyPipelineIsANoOp) {
 TEST(PassManager, DetectsAPassThatCorruptsTheIr) {
   // Proves the verifier-after-every-pass safety net is actually wired up: we
   // corrupt the IR by hand and confirm the manager refuses to proceed.
+  //
+  // Verification is enabled EXPLICITLY rather than relying on the build type.
+  // PassManagerOptions defaults it off under NDEBUG -- which is the right
+  // default, since verifying after every pass costs real time in a release
+  // compiler -- but a test that inherits that default silently stops testing
+  // anything in a release build. This one failed in `ctest` on the release
+  // preset for exactly that reason.
   Compiled compiled;
   ASSERT_TRUE(compile("int main() { print(1); return 0; }", compiled));
 
   compiled.module.functions[0].blocks[0].instructions.back().op = ir::Opcode::Print;
 
+  opt::PassManagerOptions options;
+  options.verifyAfterEachPass = true;
+  opt::PassManager manager(options);
+
   opt::PipelineStats stats;
   std::string error;
-  EXPECT_FALSE(opt::optimizeModule(compiled.module, {"dce"}, stats, error));
+  EXPECT_FALSE(manager.run(compiled.module, std::vector<std::string>{"dce"}, stats, error));
   EXPECT_NE(error.find("invalid"), std::string::npos) << error;
+}
+
+TEST(PassManager, SkipsVerificationWhenAskedTo) {
+  // The other half of the contract: a release build really does skip
+  // verification, so the cost is not silently being paid.
+  Compiled compiled;
+  ASSERT_TRUE(compile("int main() { print(1); return 0; }", compiled));
+
+  compiled.module.functions[0].blocks[0].instructions.back().op = ir::Opcode::Print;
+
+  opt::PassManagerOptions options;
+  options.verifyAfterEachPass = false;
+  opt::PassManager manager(options);
+
+  opt::PipelineStats stats;
+  std::string error;
+  EXPECT_TRUE(manager.run(compiled.module, std::vector<std::string>{"dce"}, stats, error))
+      << "verification ran even though it was disabled";
 }
 
 TEST(PassManager, ReportsPerPassStatistics) {
